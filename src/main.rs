@@ -1,20 +1,31 @@
+// objects should be used in a way where physics and movement
+// is handled, then collisions are done with every object
+// in that order every frame
 mod objects;
-use objects::{RigidBody, Point, RectObject};
+use objects::{MovingObject, MovingObjectDirections, Vector2};
 
 fn main() {
-    let object1 = RigidBody {
-        center: Point::new(10.0, 10.0),
-        width: 5.0,
-        height: 5.0,
-        density: 1.0,
-    };
+    let mut object1 = MovingObject::new(
+        Vector2::new(0.0, 0.0),
+        Vector2::new(5.0, -2.0),
+        1.0,
+        1.0,
+        false,
+    );
 
-    let object2 = RigidBody {
-        center: Point::new(10.0, 10.0),
-        width: 4.0,
-        height: 4.0,
-        density: 1.0,
-    };
+    object1.update(0.5);
 
-    println!("{}", object1.collides_with(&object2));
+    println!(
+        "x: {}, y: {}, moving_time: {}, direction: {}",
+        object1.center.x,
+        object1.center.y,
+        object1.moving_time,
+        match object1.direction {
+            MovingObjectDirections::Leaving => "Leaving",
+            MovingObjectDirections::Returning => "Returning",
+            MovingObjectDirections::Standstil => "Standstill",
+        }
+    );
 }
+
+// todo: fix easing, make update potentiall swap directions, commit :)
