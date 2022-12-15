@@ -17,7 +17,7 @@ impl Vector2 {
     }
 
     // makes set equal to passed vector
-    fn set(&mut self, other: &Vector2) {
+    pub fn set(&mut self, other: &Vector2) {
         self.x = other.x;
         self.y = other.y;
     }
@@ -41,7 +41,7 @@ impl Vector2 {
     }
 
     // adds self to other
-    fn add_to(&self, other: &mut Vector2) {
+    pub fn add_to(&self, other: &mut Vector2) {
         other.set(&Vector2::add(&self, &other));
     }
 }
@@ -56,16 +56,16 @@ fn sandwitch(f1: f64, f2: f64, f3: f64) -> bool {
 // flat and two vertical lines
 pub trait RectObject {
     // returns the object's 4 points
-    fn points(&self) -> Vec<Vector2>;
+    pub fn points(&self) -> Vec<Vector2>;
 
     // returns a vector containing the leftmost
     // x value, rightmost x value, lowest y
     // value, and uppermost y value respectively
-    fn bounds(&self) -> Vec<f64>;
+    pub fn bounds(&self) -> Vec<f64>;
 
     // detects if the there is collion on
     // the horizontal axis
-    fn collides_with_y(&self, other: &dyn RectObject) -> bool {
+    pub fn collides_with_y(&self, other: &dyn RectObject) -> bool {
         let self_bounds: Vec<f64> = self.bounds();
         let other_bounds: Vec<f64> = other.bounds();
 
@@ -87,7 +87,7 @@ pub trait RectObject {
 
     // detects if the there is collion on
     // the vertical axis
-    fn collides_with_x(&self, other: &dyn RectObject) -> bool {
+    pub fn collides_with_x(&self, other: &dyn RectObject) -> bool {
         let self_bounds: Vec<f64> = self.bounds();
         let other_bounds: Vec<f64> = other.bounds();
 
@@ -109,7 +109,7 @@ pub trait RectObject {
 
     // detects collision with the other object
     // (colliding edges counts as collision)
-    fn collides_with(&self, other: &dyn RectObject) -> bool {
+    pub fn collides_with(&self, other: &dyn RectObject) -> bool {
         self.collides_with_x(other) && self.collides_with_y(other)
     }
 }
@@ -192,7 +192,7 @@ pub struct MovingObject {
     pub height: f64,
     pub fallthrough: bool,
 
-    pub moving_time: f64, // percent of time until destination point reached
+    moving_time: f64, // percent of time until destination point reached
     pub direction: MovingObjectDirections,
     pub center: Vector2,
 }
