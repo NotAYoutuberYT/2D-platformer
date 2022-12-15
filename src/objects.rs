@@ -56,16 +56,16 @@ fn sandwitch(f1: f64, f2: f64, f3: f64) -> bool {
 // flat and two vertical lines
 pub trait RectObject {
     // returns the object's 4 points
-    pub fn points(&self) -> Vec<Vector2>;
+    fn points(&self) -> Vec<Vector2>;
 
     // returns a vector containing the leftmost
     // x value, rightmost x value, lowest y
     // value, and uppermost y value respectively
-    pub fn bounds(&self) -> Vec<f64>;
+    fn bounds(&self) -> Vec<f64>;
 
     // detects if the there is collion on
     // the horizontal axis
-    pub fn collides_with_y(&self, other: &dyn RectObject) -> bool {
+    fn collides_with_y(&self, other: &dyn RectObject) -> bool {
         let self_bounds: Vec<f64> = self.bounds();
         let other_bounds: Vec<f64> = other.bounds();
 
@@ -87,7 +87,7 @@ pub trait RectObject {
 
     // detects if the there is collion on
     // the vertical axis
-    pub fn collides_with_x(&self, other: &dyn RectObject) -> bool {
+    fn collides_with_x(&self, other: &dyn RectObject) -> bool {
         let self_bounds: Vec<f64> = self.bounds();
         let other_bounds: Vec<f64> = other.bounds();
 
@@ -109,7 +109,7 @@ pub trait RectObject {
 
     // detects collision with the other object
     // (colliding edges counts as collision)
-    pub fn collides_with(&self, other: &dyn RectObject) -> bool {
+    fn collides_with(&self, other: &dyn RectObject) -> bool {
         self.collides_with_x(other) && self.collides_with_y(other)
     }
 }
@@ -121,7 +121,9 @@ pub struct RigidBody {
     pub velocity: Vector2,
     pub width: f64,
     pub height: f64,
+
     pub density: f64,
+    pub static_friction: bool,
 }
 
 impl RigidBody {
@@ -238,9 +240,7 @@ impl MovingObject {
         self.moving_time += ammount;
 
         // this prevents overflow
-        while self.moving_time >= 2.0 {
-            self.moving_time -= 2.0;
-        }
+        self.moving_time %= 2.0;
 
         // sets moving direction to be correct
         if self.moving_time <= 1.0 {
