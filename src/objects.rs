@@ -52,6 +52,10 @@ fn sandwitch(f1: f64, f2: f64, f3: f64) -> bool {
     f1 <= f2 && f2 <= f3
 }
 
+//
+// RectObject trait code
+//
+
 // a rectangle object that has two
 // flat and two vertical lines
 pub trait RectObject {
@@ -68,22 +72,6 @@ pub trait RectObject {
     fn contains_point(&self, point: &Vector2) -> bool {
         let bounds: Vec<f64> = self.bounds();
 
-        let mut inside: bool = true;
-
-        // if we detect the point outside of the
-        // box at any time, set inside to false
-        if point.x < bounds[0] || bounds[1] < point.x {
-            inside = false;
-        } else if point.y < bounds[2] || bounds[3] < point.y {
-            inside = false;
-        }
-
-        inside
-    }
-
-    // given a Vector2, determines if that vector lies within
-    // the object (being on an edge counts as being inside)
-    fn contains_point_cache_bounds(&self, point: &Vector2, bounds: &Vec<f64>) -> bool {
         let mut inside: bool = true;
 
         // if we detect the point outside of the
@@ -148,7 +136,25 @@ pub trait RectObject {
     }
 }
 
+// given a Vector2, determines if that vector lies within
+// the object (being on an edge counts as being inside)
+pub fn contains_point_cache_bounds(point: &Vector2, bounds: &Vec<f64>) -> bool {
+    let mut inside: bool = true;
+
+    // if we detect the point outside of the
+    // box at any time, set inside to false
+    if point.x < bounds[0] || bounds[1] < point.x {
+        inside = false;
+    } else if point.y < bounds[2] || bounds[3] < point.y {
+        inside = false;
+    }
+
+    inside
+}
+
+//
 // RigidBody code
+//
 
 pub struct RigidBody {
     pub center: Vector2,
@@ -212,7 +218,9 @@ impl RectObject for RigidBody {
     }
 }
 
+//
 // MovingObject code
+//
 
 #[derive(PartialEq, Eq)]
 pub enum MovingObjectDirections {
@@ -342,7 +350,9 @@ impl RectObject for MovingObject {
     }
 }
 
+//
 // StaticObject code
+//
 
 pub struct StaticObject {
     pub center: Vector2,

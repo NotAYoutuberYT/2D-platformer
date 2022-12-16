@@ -2,7 +2,7 @@ extern crate minifb;
 use minifb::{Key, Window, WindowOptions};
 
 mod objects;
-use objects::{RectObject, RigidBody, Vector2};
+use objects::{contains_point_cache_bounds, RectObject, RigidBody, StaticObject, Vector2};
 
 const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
@@ -39,25 +39,74 @@ fn main() {
         static_friction: false,
     };
 
+    // grounds
+    let ground = StaticObject {
+        center: Vector2::new(510.0, 75.0),
+        width: 1020.0,
+        height: 150.0,
+    };
+
+    // cache object bounds
+    let ground_bounds = ground.bounds();
+    let mut player_bounds;
+
     while window.is_open() && !window.is_key_down(Key::Escape) {
+        // recache player bounds
+        player_bounds = player.bounds();
+
         // used to measure the frame time
         let now = std::time::Instant::now();
 
         // physics
-        player.velocity.y -= frame_time / 40.0;
-        player.move_by(&Vector2::multiply(&player.velocity, frame_time));
+        player.velocity.y -= frame_time / 20.0;
 
-        // cache bounds
-        let bounds = player.bounds();
+        // calculate how far the player moves
+        let movement_vector = &Vector2::multiply(&player.velocity, frame_time);
+
+        // do all moving and physics only if the window is active
+        // so that physics don't break
+        if window.is_active() {
+            player.move_by(&movement_vector);
+
+            if window.is_key_down(Key::A) {
+                player.center.x -= 5.0 * frame_time;
+            }
+            if window.is_key_down(Key::D) {
+                player.center.x += 5.0 * frame_time;
+            }
+        }
+
+        let mut on_ground: bool = false;
+
+        // if the player is on the ground, move it out of the ground
+        if player.collides_with(&ground) {
+            // if we collide with the ground, put ourselves on it
+            player.center.y = ground_bounds[3] + player.height / 2.0;
+            player.velocity = Vector2::new(0.0, 0.0);
+
+            on_ground = true;
+        }
+
+        // jump if space is pressed and window is focused
+        if on_ground && window.is_key_down(Key::Space) && window.is_active() {
+            player.velocity.y = 2.5;
+        }
 
         // render each pixel
         for x in 0..WINDOW_WIDTH {
             for y in 0..WINDOW_HEIGHT {
-                window_buffer[y * WINDOW_WIDTH + x] =
-                    match player.contains_point_cache_bounds(&Vector2::new(x as f64, (WINDOW_HEIGHT - y) as f64), &bounds) {
-                        true => 0xff0000,
-                        false => 0x0,
-                    };
+                let rgb: u32;
+                let point = Vector2::new(x as f64, (WINDOW_HEIGHT - y) as f64);
+
+                if contains_point_cache_bounds(&point, &player_bounds) {
+                    rgb = 0xff0000;
+                } else if contains_point_cache_bounds(&point, &ground_bounds) {
+                    rgb = 0xff;
+                } else {
+                    rgb = 0x200020;
+                }
+
+                window_buffer[y * WINDOW_WIDTH + x] = rgb;
             }
         }
 
