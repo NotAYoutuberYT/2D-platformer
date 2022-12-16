@@ -63,6 +63,40 @@ pub trait RectObject {
     // value, and uppermost y value respectively
     fn bounds(&self) -> Vec<f64>;
 
+    // given a Vector2, determines if that vector lies within
+    // the object (being on an edge counts as being inside)
+    fn contains_point(&self, point: &Vector2) -> bool {
+        let bounds: Vec<f64> = self.bounds();
+
+        let mut inside: bool = true;
+
+        // if we detect the point outside of the
+        // box at any time, set inside to false
+        if point.x < bounds[0] || bounds[1] < point.x {
+            inside = false;
+        } else if point.y < bounds[2] || bounds[3] < point.y {
+            inside = false;
+        }
+
+        inside
+    }
+
+    // given a Vector2, determines if that vector lies within
+    // the object (being on an edge counts as being inside)
+    fn contains_point_cache_bounds(&self, point: &Vector2, bounds: &Vec<f64>) -> bool {
+        let mut inside: bool = true;
+
+        // if we detect the point outside of the
+        // box at any time, set inside to false
+        if point.x < bounds[0] || bounds[1] < point.x {
+            inside = false;
+        } else if point.y < bounds[2] || bounds[3] < point.y {
+            inside = false;
+        }
+
+        inside
+    }
+
     // detects if the there is collion on
     // the horizontal axis
     fn collides_with_y(&self, other: &dyn RectObject) -> bool {
@@ -118,10 +152,10 @@ pub trait RectObject {
 
 pub struct RigidBody {
     pub center: Vector2,
-    pub velocity: Vector2,
     pub width: f64,
     pub height: f64,
 
+    pub velocity: Vector2,
     pub density: f64,
     pub static_friction: bool,
 }
@@ -170,7 +204,7 @@ impl RectObject for RigidBody {
         points.push(self.center.x + half_width);
 
         // push bottom y, top y
-        let half_height: f64 = self.width / 2.0;
+        let half_height: f64 = self.height / 2.0;
         points.push(self.center.y - half_height);
         points.push(self.center.y + half_height);
 
@@ -300,7 +334,7 @@ impl RectObject for MovingObject {
         points.push(self.center.x + half_width);
 
         // push bottom y, top y
-        let half_height: f64 = self.width / 2.0;
+        let half_height: f64 = self.height / 2.0;
         points.push(self.center.y - half_height);
         points.push(self.center.y + half_height);
 
@@ -353,7 +387,7 @@ impl RectObject for StaticObject {
         points.push(self.center.x + half_width);
 
         // push bottom y, top y
-        let half_height: f64 = self.width / 2.0;
+        let half_height: f64 = self.height / 2.0;
         points.push(self.center.y - half_height);
         points.push(self.center.y + half_height);
 
