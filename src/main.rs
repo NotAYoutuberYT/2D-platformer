@@ -20,7 +20,7 @@ const GRAVITY_MOVING_UP: f64 = 1.0 / 7.8;
 const GRAVITY_MOVING_DOWN: f64 = 1.0 / 4.5;
 const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
-const DIRECTIONAL_COLLISION_DEPTH: f64 = 6.0;
+const DIRECTIONAL_COLLISION_DEPTH: f64 = 7.5;
 
 fn main() {
     // our player
@@ -60,14 +60,14 @@ fn main() {
     let mut moving_objects = [
         MovingObject::new(
             Vector2::new(300.0, 245.0),
-            Vector2::new(265.0, 550.0),
+            Vector2::new(265.0, 575.0),
             80.0,
             35.0,
             220.0,
             false,
         ),
         MovingObject::new(
-            Vector2::new(630.0, 400.0),
+            Vector2::new(615.0, 400.0),
             Vector2::new(800.0, 545.0),
             100.0,
             35.0,
@@ -184,28 +184,23 @@ fn main() {
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
             if player.collides_with(object) {
+                if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.0 - player.width / 2.0;
+                } else if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.1 + player.width / 2.0;
+                }
                 // if we're on top of a moving object, move with it
-                if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
+                else if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
                     player.center.x += object.prev_move.x;
                     player.center.y = bounds.3 + player.height / 2.0;
 
                     stuck_platform = Some(object.clone());
 
                     on_object = true;
-                }
-
-                if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
+                } else if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
                     player.center.y = bounds.2 - player.height / 2.0;
 
                     under_object = true;
-                }
-
-                if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds.1 + player.width / 2.0;
-                }
-
-                if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds.0 - player.width / 2.0;
                 }
             }
         }
@@ -216,24 +211,18 @@ fn main() {
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
             if player.collides_with(&static_objects[i]) {
-                if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
+                if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.1 + player.width / 2.0;
+                } else if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.0 - player.width / 2.0;
+                } else if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
                     player.center.y = bounds.3 + player.height / 2.0;
 
                     on_object = true;
-                }
-
-                if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
+                } else if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
                     player.center.y = bounds.2 - player.height / 2.0;
 
                     under_object = true;
-                }
-
-                if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds.1 + player.width / 2.0;
-                }
-
-                if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds.0 - player.width / 2.0;
                 }
             }
         }
@@ -257,6 +246,11 @@ fn main() {
 
         // recache bounds for graphics
         player_bounds = player.bounds();
+
+        // this is for testing purposes
+        if player.center.y < -20.0 {
+            player.center = Vector2::new(400.0, 300.0);
+        }
 
         //
         // graphics rendering below
