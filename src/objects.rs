@@ -12,7 +12,7 @@ impl Vector2 {
     }
 
     // returns a copy of self
-    pub fn copy(&self) -> Vector2 {
+    pub fn clone(&self) -> Vector2 {
         Vector2::new(self.x, self.y)
     }
 
@@ -222,7 +222,7 @@ impl RectObject for RigidBody {
 // MovingObject code
 //
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum MovingObjectDirections {
     Leaving,
     Returning,
@@ -241,7 +241,7 @@ pub struct MovingObject {
     pub direction: MovingObjectDirections,
     pub center: Vector2,
 
-    pub prev_moved: Vector2, // this represents the motion on the object's last update
+    pub prev_move: Vector2, // this represents the motion on the object's last update
 }
 
 impl MovingObject {
@@ -254,11 +254,11 @@ impl MovingObject {
         move_time: f64,
         fallthrough: bool,
     ) -> Self {
-        let center: Vector2 = start_pos.copy();
+        let center: Vector2 = start_pos.clone();
 
         MovingObject {
-            start_pos,
-            end_pos,
+            start_pos: start_pos,
+            end_pos: end_pos,
             width: width,
             height: height,
             move_time: move_time,
@@ -268,7 +268,24 @@ impl MovingObject {
             direction: MovingObjectDirections::Leaving,
             center: center,
 
-            prev_moved: Vector2::new(0.0, 0.0),
+            prev_move: Vector2::new(0.0, 0.0),
+        }
+    }
+
+    pub fn clone(&self) -> MovingObject {
+        MovingObject {
+            start_pos: self.start_pos.clone(),
+            end_pos: self.end_pos.clone(),
+            width: self.width,
+            height: self.height,
+            move_time: self.move_time,
+            fallthrough: self.fallthrough,
+
+            moving_time: self.moving_time,
+            direction: self.direction.clone(),
+            center: self.center.clone(),
+
+            prev_move: self.prev_move.clone(),
         }
     }
 
@@ -277,7 +294,7 @@ impl MovingObject {
     // if ammount is zero, will set direction to standstil
     // will panic on negative ammount values
     pub fn update(&mut self, ammount: f64) {
-        let pre_center: Vector2 = Vector2::copy(&self.center);
+        let pre_center: Vector2 = Vector2::clone(&self.center);
 
         // check if the object stopped moving, and do a little
         // error handling while we're at it
@@ -313,7 +330,7 @@ impl MovingObject {
             .set(&Vector2::lerp(&self.start_pos, &self.end_pos, lerp_ammount));
 
         // return the moved ammount by subtracting previous position from new position
-        self.prev_moved = Vector2::add(&Vector2::multiply(&pre_center, -1.0), &self.center)
+        self.prev_move = Vector2::add(&Vector2::multiply(&pre_center, -1.0), &self.center)
     }
 }
 

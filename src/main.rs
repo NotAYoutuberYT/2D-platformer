@@ -8,25 +8,24 @@ use objects::{
 
 const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
+const FRAME_LIMIT_MILLIS: u64 = 1000 / 60;
 
 const PLAYER_WALKING_SPEED: f64 = 3.2;
 const PLAYER_RUNNING_SPEED: f64 = 5.0;
 
-const JUMP_BUFFER_SECS: f64 = 0.04;
+const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
 const JUMP_FORCE: f64 = 5.0;
 
 const GRAVITY_MOVING_UP: f64 = 1.0 / 4.6;
 const GRAVITY_MOVING_DOWN: f64 = 1.0 / 11.0;
-const GRAVITY_ON_OBJECT: f64 = -1.0 / 3.0;
-
-const FRAME_LIMIT_MILLIS: u64 = 1000 / 60;
+const VERTICAL_VELOCITY_ON_OBJECT: f64 = -1.0 / 2.5;
 
 const DIRECTIONAL_COLLISION_DEPTH: f64 = 5.5;
 
 fn main() {
     // our player
     let mut player = RigidBody {
-        center: Vector2::new(255.0, 300.0),
+        center: Vector2::new(400.0, 300.0),
         width: 20.0,
         height: 40.0,
 
@@ -42,27 +41,37 @@ fn main() {
             height: 150.0,
         },
         StaticObject {
-            center: Vector2::new(500.0, 180.0),
+            center: Vector2::new(430.0, 185.0),
+            width: 80.0,
+            height: 80.0,
+        },
+        StaticObject {
+            center: Vector2::new(360.0, 650.0),
             width: 50.0,
-            height: 60.0,
+            height: 225.0,
+        },
+        StaticObject {
+            center: Vector2::new(410.0, 562.5),
+            width: 50.0,
+            height: 50.0,
         },
     ];
 
     let mut moving_objects = [
         MovingObject::new(
-            Vector2::new(300.0, 260.0),
-            Vector2::new(700.0, 260.0),
-            110.0,
-            40.0,
-            200.0,
+            Vector2::new(300.0, 245.0),
+            Vector2::new(265.0, 550.0),
+            80.0,
+            35.0,
+            220.0,
             false,
         ),
         MovingObject::new(
-            Vector2::new(300.0, 280.0),
-            Vector2::new(290.0, 600.0),
-            80.0,
+            Vector2::new(630.0, 400.0),
+            Vector2::new(800.0, 545.0),
+            100.0,
             35.0,
-            400.0,
+            220.0,
             false,
         ),
     ];
@@ -100,12 +109,19 @@ fn main() {
 
     let mut player_bounds: [f64; 4];
 
-    while window.is_open() && !window.is_key_down(Key::Escape) {
-        // recache bounds for physics
-        player_bounds = player.bounds();
+    // this prevent "bouncing" on downward moving platforms
+    let mut stuck_platform: Option<MovingObject> = None;
 
+    //
+    // game loop starts here
+    //
+
+    while window.is_open() && !window.is_key_down(Key::Escape) {
         // used to measure the frame time
         let now = std::time::Instant::now();
+
+        // recache bounds for physics
+        player_bounds = player.bounds();
 
         // apply gravity
         player.velocity.y -= match player.velocity.y <= 0.0 {
@@ -113,15 +129,17 @@ fn main() {
             true => GRAVITY_MOVING_DOWN,
         };
 
-        // calculate how far the player moves
+        // move the player
         let movement_vector = &Vector2::multiply(&player.velocity, frame_time);
         player.move_by(&movement_vector);
 
+        // find movement speed
         let current_speed: f64 = match window.is_key_down(Key::LeftShift) {
             false => PLAYER_WALKING_SPEED,
             true => PLAYER_RUNNING_SPEED,
         };
 
+        // apply movement speed
         if window.is_key_down(Key::A) {
             player.center.x -= current_speed * frame_time;
         }
@@ -134,9 +152,22 @@ fn main() {
             (moving_object.update(frame_time));
         }
 
-        let mut on_object: bool = false;
+        // move into the platform we're stuck to if it exists
+        if let Some(mut stuck_obj) = stuck_platform {
+            if player.collides_with_x(&stuck_obj) {
+                stuck_obj.update(frame_time);
+                player.center.y =
+                    stuck_obj.bounds()[3] + player.height / 2.0 - DIRECTIONAL_COLLISION_DEPTH / 2.0;
+            }
+        }
 
-        // handle collisions
+        stuck_platform = None;
+
+        let mut on_object = false;
+
+        //
+        // collision handling here
+        //
 
         for object in &moving_objects {
             let bounds = &object.bounds();
@@ -146,9 +177,10 @@ fn main() {
             if player.collides_with(object) {
                 // if we're on top of a moving object, move with it
                 if player_bounds[2] >= bounds[3] - DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x += object.prev_move.x;
                     player.center.y = bounds[3] + player.height / 2.0;
 
-                    player.move_by(&object.prev_moved);
+                    stuck_platform = Some(object.clone());
 
                     on_object = true;
                 }
@@ -193,21 +225,19 @@ fn main() {
             }
         }
 
-        // decrease our jump buffer time if it's counting down
-        if jump_buffer > 0.0 {
-            jump_buffer -= frame_time;
-        }
+        jump_buffer -= frame_time;
 
         // if space is pressed, start jump buffer
-        if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) || window.is_key_down(Key::W) {
-            jump_buffer = JUMP_BUFFER_SECS;
+        if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) {
+            jump_buffer = JUMP_BUFFER_HUNDRETHSECS;
         }
 
         if on_object && jump_buffer > 0.0 {
             player.velocity.y = JUMP_FORCE;
             jump_buffer = 0.0;
+            stuck_platform = None; // if we jump, unstick ourselves
         } else if on_object {
-            player.velocity.y = GRAVITY_ON_OBJECT;
+            player.velocity.y = VERTICAL_VELOCITY_ON_OBJECT;
         }
 
         // recache bounds for graphics
