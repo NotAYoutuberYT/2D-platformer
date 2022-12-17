@@ -234,11 +234,14 @@ pub struct MovingObject {
     pub end_pos: Vector2,
     pub width: f64,
     pub height: f64,
+    pub move_time: f64,
     pub fallthrough: bool,
 
     moving_time: f64, // percent of time until destination point reached
     pub direction: MovingObjectDirections,
     pub center: Vector2,
+
+    pub prev_moved: Vector2, // this represents the motion on the object's last update
 }
 
 impl MovingObject {
@@ -248,6 +251,7 @@ impl MovingObject {
         end_pos: Vector2,
         width: f64,
         height: f64,
+        move_time: f64,
         fallthrough: bool,
     ) -> Self {
         let center: Vector2 = start_pos.copy();
@@ -257,11 +261,14 @@ impl MovingObject {
             end_pos,
             width: width,
             height: height,
+            move_time: move_time,
             fallthrough: fallthrough,
 
             moving_time: 0.0,
             direction: MovingObjectDirections::Leaving,
             center: center,
+
+            prev_moved: Vector2::new(0.0, 0.0),
         }
     }
 
@@ -270,6 +277,8 @@ impl MovingObject {
     // if ammount is zero, will set direction to standstil
     // will panic on negative ammount values
     pub fn update(&mut self, ammount: f64) {
+        let pre_center: Vector2 = Vector2::copy(&self.center);
+
         // check if the object stopped moving, and do a little
         // error handling while we're at it
         if ammount < 0.0 {
@@ -279,7 +288,7 @@ impl MovingObject {
             return;
         }
 
-        self.moving_time += ammount;
+        self.moving_time += ammount / self.move_time;
 
         // this prevents overflow
         self.moving_time %= 2.0;
@@ -302,6 +311,9 @@ impl MovingObject {
         // lerp between the two points to determine the center of the moving platform
         self.center
             .set(&Vector2::lerp(&self.start_pos, &self.end_pos, lerp_ammount));
+
+        // return the moved ammount by subtracting previous position from new position
+        self.prev_moved = Vector2::add(&Vector2::multiply(&pre_center, -1.0), &self.center)
     }
 }
 

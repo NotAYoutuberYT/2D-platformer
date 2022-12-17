@@ -21,7 +21,7 @@ const GRAVITY_ON_OBJECT: f64 = -1.0 / 3.0;
 
 const FRAME_LIMIT_MILLIS: u64 = 1000 / 60;
 
-const DIRECTIONAL_COLLISION_DEPTH: f64 = 3.75;
+const DIRECTIONAL_COLLISION_DEPTH: f64 = 5.5;
 
 fn main() {
     // our player
@@ -48,13 +48,24 @@ fn main() {
         },
     ];
 
-    let mut moving_objects = [MovingObject::new(
-        Vector2::new(400.0, 260.0),
-        Vector2::new(600.0, 260.0),
-        110.0,
-        40.0,
-        false,
-    )];
+    let mut moving_objects = [
+        MovingObject::new(
+            Vector2::new(300.0, 260.0),
+            Vector2::new(700.0, 260.0),
+            110.0,
+            40.0,
+            200.0,
+            false,
+        ),
+        MovingObject::new(
+            Vector2::new(300.0, 280.0),
+            Vector2::new(290.0, 600.0),
+            80.0,
+            35.0,
+            400.0,
+            false,
+        ),
+    ];
 
     // our window :)
     let mut window = Window::new(
@@ -75,7 +86,7 @@ fn main() {
     // this will be where we write out pixel values
     let mut window_buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
 
-    // how long each frame takes (in seconds)
+    // how long each frame takes (in hundreths of a seconds)
     let mut frame_time: f64 = 0.0;
 
     // jump buffers make movement feel a little better
@@ -118,17 +129,26 @@ fn main() {
             player.center.x += current_speed * frame_time;
         }
 
+        // update moving platforms
+        for moving_object in &mut moving_objects {
+            (moving_object.update(frame_time));
+        }
+
         let mut on_object: bool = false;
 
         // handle collisions
-        for i in 0..static_objects.len() {
-            let bounds = &static_object_bounds[i];
+
+        for object in &moving_objects {
+            let bounds = &object.bounds();
 
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
-            if player.collides_with(&static_objects[i]) {
+            if player.collides_with(object) {
+                // if we're on top of a moving object, move with it
                 if player_bounds[2] >= bounds[3] - DIRECTIONAL_COLLISION_DEPTH {
                     player.center.y = bounds[3] + player.height / 2.0;
+
+                    player.move_by(&object.prev_moved);
 
                     on_object = true;
                 }
@@ -147,12 +167,12 @@ fn main() {
             }
         }
 
-        for object in &moving_objects {
-            let bounds = &object.bounds();
+        for i in 0..static_objects.len() {
+            let bounds = &static_object_bounds[i];
 
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
-            if player.collides_with(object) {
+            if player.collides_with(&static_objects[i]) {
                 if player_bounds[2] >= bounds[3] - DIRECTIONAL_COLLISION_DEPTH {
                     player.center.y = bounds[3] + player.height / 2.0;
 
@@ -188,11 +208,6 @@ fn main() {
             jump_buffer = 0.0;
         } else if on_object {
             player.velocity.y = GRAVITY_ON_OBJECT;
-        }
-
-        // update moving platforms
-        for moving_object in &mut moving_objects {
-            moving_object.update(frame_time / 100.0);
         }
 
         // recache bounds for graphics
