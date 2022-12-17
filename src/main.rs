@@ -18,7 +18,7 @@ const JUMP_FORCE: f64 = 5.0;
 
 const GRAVITY_MOVING_UP: f64 = 1.0 / 4.6;
 const GRAVITY_MOVING_DOWN: f64 = 1.0 / 11.0;
-const VERTICAL_VELOCITY_ON_OBJECT: f64 = -1.0 / 2.5;
+const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
 const DIRECTIONAL_COLLISION_DEPTH: f64 = 5.5;
 
@@ -102,12 +102,12 @@ fn main() {
     let mut jump_buffer: f64 = 0.0;
 
     // cache object bounds
-    let static_object_bounds: Vec<[f64; 4]> = static_objects
+    let static_object_bounds: Vec<(f64, f64, f64, f64)> = static_objects
         .iter()
         .map(|object| object.bounds())
         .collect();
 
-    let mut player_bounds: [f64; 4];
+    let mut player_bounds: (f64, f64, f64, f64);
 
     // this prevent "bouncing" on downward moving platforms
     let mut stuck_platform: Option<MovingObject> = None;
@@ -157,70 +157,75 @@ fn main() {
             if player.collides_with_x(&stuck_obj) {
                 stuck_obj.update(frame_time);
                 player.center.y =
-                    stuck_obj.bounds()[3] + player.height / 2.0 - DIRECTIONAL_COLLISION_DEPTH / 2.0;
+                    stuck_obj.bounds().3 + player.height / 2.0 - DIRECTIONAL_COLLISION_DEPTH / 2.0;
             }
         }
 
         stuck_platform = None;
 
         let mut on_object = false;
+        let mut under_object = false;
 
         //
         // collision handling here
         //
 
         for object in &moving_objects {
-            let bounds = &object.bounds();
+            let bounds = object.bounds();
 
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
             if player.collides_with(object) {
                 // if we're on top of a moving object, move with it
-                if player_bounds[2] >= bounds[3] - DIRECTIONAL_COLLISION_DEPTH {
+                if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
                     player.center.x += object.prev_move.x;
-                    player.center.y = bounds[3] + player.height / 2.0;
+                    player.center.y = bounds.3 + player.height / 2.0;
 
                     stuck_platform = Some(object.clone());
 
                     on_object = true;
                 }
 
-                if player_bounds[3] <= bounds[2] + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.y = bounds[2] - player.height / 2.0;
+                if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.y = bounds.2 - player.height / 2.0;
+
+                    under_object = true;
                 }
 
-                if player_bounds[0] >= bounds[1] - DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds[1] + player.width / 2.0;
+                if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.1 + player.width / 2.0;
                 }
 
-                if player_bounds[1] <= bounds[0] + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds[0] - player.width / 2.0;
+                if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.0 - player.width / 2.0;
                 }
             }
         }
 
         for i in 0..static_objects.len() {
-            let bounds = &static_object_bounds[i];
+            let bounds = static_object_bounds[i];
 
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
             if player.collides_with(&static_objects[i]) {
-                if player_bounds[2] >= bounds[3] - DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.y = bounds[3] + player.height / 2.0;
+                if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.y = bounds.3 + player.height / 2.0;
 
                     on_object = true;
                 }
 
-                if player_bounds[3] <= bounds[2] + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.y = bounds[2] - player.height / 2.0;
+                if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.y = bounds.2 - player.height / 2.0;
+
+                    under_object = true;
                 }
 
-                if player_bounds[0] >= bounds[1] - DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds[1] + player.width / 2.0;
+                if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.1 + player.width / 2.0;
                 }
 
-                if player_bounds[1] <= bounds[0] + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds[0] - player.width / 2.0;
+                if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
+                    player.center.x = bounds.0 - player.width / 2.0;
                 }
             }
         }
@@ -237,7 +242,9 @@ fn main() {
             jump_buffer = 0.0;
             stuck_platform = None; // if we jump, unstick ourselves
         } else if on_object {
-            player.velocity.y = VERTICAL_VELOCITY_ON_OBJECT;
+            player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
+        } else if under_object {
+            player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
         }
 
         // recache bounds for graphics

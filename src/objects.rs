@@ -65,20 +65,20 @@ pub trait RectObject {
     // returns a vector containing the leftmost
     // x value, rightmost x value, lowest y
     // value, and uppermost y value respectively
-    fn bounds(&self) -> [f64; 4];
+    fn bounds(&self) -> (f64, f64, f64, f64);
 
     // given a Vector2, determines if that vector lies within
     // the object (being on an edge counts as being inside)
     fn contains_point(&self, point: &Vector2) -> bool {
-        let bounds: [f64; 4] = self.bounds();
+        let bounds: (f64, f64, f64, f64) = self.bounds();
 
         let mut inside: bool = true;
 
         // if we detect the point outside of the
         // box at any time, set inside to false
-        if point.x < bounds[0] || bounds[1] < point.x {
+        if point.x < bounds.0 || bounds.1 < point.x {
             inside = false;
-        } else if point.y < bounds[2] || bounds[3] < point.y {
+        } else if point.y < bounds.2 || bounds.3 < point.y {
             inside = false;
         }
 
@@ -88,18 +88,18 @@ pub trait RectObject {
     // detects if the there is collion on
     // the horizontal axis
     fn collides_with_y(&self, other: &dyn RectObject) -> bool {
-        let self_bounds: [f64; 4] = self.bounds();
-        let other_bounds: [f64; 4] = other.bounds();
+        let self_bounds: (f64, f64, f64, f64) = self.bounds();
+        let other_bounds: (f64, f64, f64, f64) = other.bounds();
 
         let mut collides: bool = false;
 
-        if sandwitch(other_bounds[0], self_bounds[0], other_bounds[1]) {
+        if sandwitch(other_bounds.0, self_bounds.0, other_bounds.1) {
             // is self's leftmost side in other?
             collides = true;
-        } else if sandwitch(other_bounds[0], self_bounds[1], other_bounds[1]) {
+        } else if sandwitch(other_bounds.0, self_bounds.1, other_bounds.1) {
             // is self's rightmost side in other?
             collides = true;
-        } else if self_bounds[0] <= other_bounds[0] && other_bounds[1] < self_bounds[1] {
+        } else if self_bounds.0 <= other_bounds.0 && other_bounds.1 < self_bounds.1 {
             // do we completely contatain other on x axis?
             collides = true;
         }
@@ -110,18 +110,18 @@ pub trait RectObject {
     // detects if the there is collion on
     // the vertical axis
     fn collides_with_x(&self, other: &dyn RectObject) -> bool {
-        let self_bounds: [f64; 4] = self.bounds();
-        let other_bounds: [f64; 4] = other.bounds();
+        let self_bounds: (f64, f64, f64, f64) = self.bounds();
+        let other_bounds: (f64, f64, f64, f64) = other.bounds();
 
         let mut collides: bool = false;
 
-        if sandwitch(other_bounds[2], self_bounds[2], other_bounds[3]) {
+        if sandwitch(other_bounds.2, self_bounds.2, other_bounds.3) {
             // is self's bottom side in other?
             collides = true;
-        } else if sandwitch(other_bounds[2], self_bounds[3], other_bounds[3]) {
+        } else if sandwitch(other_bounds.2, self_bounds.3, other_bounds.3) {
             // is self's top side in other?
             collides = true;
-        } else if self_bounds[2] <= other_bounds[2] && other_bounds[3] < self_bounds[3] {
+        } else if self_bounds.2 <= other_bounds.2 && other_bounds.3 < self_bounds.3 {
             // do we completely contatain other on y axis?
             collides = true;
         }
@@ -138,14 +138,14 @@ pub trait RectObject {
 
 // given a Vector2, determines if that vector lies within
 // the object (being on an edge counts as being inside)
-pub fn contains_point_cache_bounds(point: &Vector2, bounds: &[f64; 4]) -> bool {
+pub fn contains_point_cache_bounds(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> bool {
     let mut inside: bool = true;
 
     // if we detect the point outside of the
     // box at any time, set inside to false
-    if point.x < bounds[0] || bounds[1] < point.x {
+    if point.x < bounds.0 || bounds.1 < point.x {
         inside = false;
-    } else if point.y < bounds[2] || bounds[3] < point.y {
+    } else if point.y < bounds.2 || bounds.3 < point.y {
         inside = false;
     }
 
@@ -201,18 +201,18 @@ impl RectObject for RigidBody {
         points
     }
 
-    fn bounds(&self) -> [f64; 4] {
-        let mut points: [f64; 4] = [0.0, 0.0, 0.0, 0.0];
+    fn bounds(&self) -> (f64, f64, f64, f64) {
+        let mut points: (f64, f64, f64, f64) = (0.0, 0.0, 0.0, 0.0);
 
         // push left x, right x
         let half_width: f64 = self.width / 2.0;
-        points[0] = self.center.x - half_width;
-        points[1] = self.center.x + half_width;
+        points.0 = self.center.x - half_width;
+        points.1 = self.center.x + half_width;
 
         // push bottom y, top y
         let half_height: f64 = self.height / 2.0;
-        points[2] = self.center.y - half_height;
-        points[3] = self.center.y + half_height;
+        points.2 = self.center.y - half_height;
+        points.3 = self.center.y + half_height;
 
         points
     }
@@ -362,18 +362,18 @@ impl RectObject for MovingObject {
         points
     }
 
-    fn bounds(&self) -> [f64; 4] {
-        let mut points: [f64; 4] = [0.0, 0.0, 0.0, 0.0];
+    fn bounds(&self) -> (f64, f64, f64, f64) {
+        let mut points: (f64, f64, f64, f64) = (0.0, 0.0, 0.0, 0.0);
 
         // push left x, right x
         let half_width: f64 = self.width / 2.0;
-        points[0] = self.center.x - half_width;
-        points[1] = self.center.x + half_width;
+        points.0 = self.center.x - half_width;
+        points.1 = self.center.x + half_width;
 
         // push bottom y, top y
         let half_height: f64 = self.height / 2.0;
-        points[2] = self.center.y - half_height;
-        points[3] = self.center.y + half_height;
+        points.2 = self.center.y - half_height;
+        points.3 = self.center.y + half_height;
 
         points
     }
@@ -417,18 +417,18 @@ impl RectObject for StaticObject {
         points
     }
 
-    fn bounds(&self) -> [f64; 4] {
-        let mut points: [f64; 4] = [0.0, 0.0, 0.0, 0.0];
+    fn bounds(&self) -> (f64, f64, f64, f64) {
+        let mut points: (f64, f64, f64, f64) = (0.0, 0.0, 0.0, 0.0);
 
         // push left x, right x
         let half_width: f64 = self.width / 2.0;
-        points[0] = self.center.x - half_width;
-        points[1] = self.center.x + half_width;
+        points.0 = self.center.x - half_width;
+        points.1 = self.center.x + half_width;
 
         // push bottom y, top y
         let half_height: f64 = self.height / 2.0;
-        points[2] = self.center.y - half_height;
-        points[3] = self.center.y + half_height;
+        points.2 = self.center.y - half_height;
+        points.3 = self.center.y + half_height;
 
         points
     }
