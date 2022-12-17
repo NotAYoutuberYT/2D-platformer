@@ -8,7 +8,7 @@ use objects::{
 
 const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
-const FRAME_LIMIT_MILLIS: u64 = 1000 / 60;
+const FRAME_LIMIT_MILLIS: u64 = 1000 / 144;
 
 const PLAYER_WALKING_SPEED: f64 = 3.2;
 const PLAYER_RUNNING_SPEED: f64 = 5.0;
@@ -16,11 +16,11 @@ const PLAYER_RUNNING_SPEED: f64 = 5.0;
 const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
 const JUMP_FORCE: f64 = 5.0;
 
-const GRAVITY_MOVING_UP: f64 = 1.0 / 4.6;
-const GRAVITY_MOVING_DOWN: f64 = 1.0 / 11.0;
+const GRAVITY_MOVING_UP: f64 = 1.0 / 7.8;
+const GRAVITY_MOVING_DOWN: f64 = 1.0 / 4.5;
 const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
-const DIRECTIONAL_COLLISION_DEPTH: f64 = 5.5;
+const DIRECTIONAL_COLLISION_DEPTH: f64 = 6.0;
 
 fn main() {
     // our player
@@ -120,18 +120,26 @@ fn main() {
         // used to measure the frame time
         let now = std::time::Instant::now();
 
-        // recache bounds for physics
-        player_bounds = player.bounds();
+        let gravity: f64;
 
-        // apply gravity
-        player.velocity.y -= match player.velocity.y <= 0.0 {
+        // find gravity
+        gravity = match player.velocity.y <= 0.0 {
             false => GRAVITY_MOVING_UP,
             true => GRAVITY_MOVING_DOWN,
         };
 
-        // move the player
-        let movement_vector = &Vector2::multiply(&player.velocity, frame_time);
+        // move the player (we integrate the player's movement instead of approximating
+        // to make the physics continuous and therefore frame-independent)
+        let mut movement_vector = Vector2::new(0.0, 0.0);
+        movement_vector.y =
+            gravity * frame_time * frame_time / 2.0 + frame_time * player.velocity.y;
         player.move_by(&movement_vector);
+
+        // update velocity
+        player.velocity.y -= gravity * frame_time;
+
+        // recache bounds for physics
+        player_bounds = player.bounds();
 
         // find movement speed
         let current_speed: f64 = match window.is_key_down(Key::LeftShift) {
@@ -163,12 +171,12 @@ fn main() {
 
         stuck_platform = None;
 
-        let mut on_object = false;
-        let mut under_object = false;
-
         //
         // collision handling here
         //
+
+        let mut on_object = false;
+        let mut under_object = false;
 
         for object in &moving_objects {
             let bounds = object.bounds();
