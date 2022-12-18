@@ -8,10 +8,13 @@ use objects::{
 
 const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
-const FRAME_LIMIT_MILLIS: u64 = 1000 / 144;
+const FPS: f64 = 144.0;
 
 const PLAYER_WALKING_SPEED: f64 = 3.2;
 const PLAYER_RUNNING_SPEED: f64 = 5.0;
+
+const PERCENT_SCREEN_PLAYER_IN: f64 = 20.0;
+const CAMERA_MOVING_EASING: f64 = 1.0 / 150.0;
 
 const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
 const JUMP_FORCE: f64 = 5.0;
@@ -20,9 +23,20 @@ const GRAVITY_MOVING_UP: f64 = 1.0 / 7.8;
 const GRAVITY_MOVING_DOWN: f64 = 1.0 / 4.5;
 const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
-const DIRECTIONAL_COLLISION_DEPTH: f64 = 7.5;
+// increasing this may increase performance on low fps
+// but will make player snap to the edges of platforms
+const COLLISION_DEPTH_BASE: f64 = 2.0;
+
+const MIN_X_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0 - PERCENT_SCREEN_PLAYER_IN / 200.0 * WINDOW_WIDTH as f64;
+const MAX_X_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0 + PERCENT_SCREEN_PLAYER_IN / 200.0 * WINDOW_WIDTH as f64;
+
+// don't touch these consts, they're decided by those above
+
+const FRAME_LIMIT_MILLIS: u64 = (1000.0 / FPS) as u64;
 
 fn main() {
+    let mut camera_bottom_left: Vector2 = Vector2::new(0.0, 0.0);
+
     // our player
     let mut player = RigidBody {
         center: Vector2::new(400.0, 300.0),
@@ -67,7 +81,7 @@ fn main() {
             false,
         ),
         MovingObject::new(
-            Vector2::new(615.0, 400.0),
+            Vector2::new(600.0, 390.0),
             Vector2::new(800.0, 545.0),
             100.0,
             35.0,
@@ -89,7 +103,6 @@ fn main() {
 
     // configure the window
     window.limit_update_rate(Some(std::time::Duration::from_millis(FRAME_LIMIT_MILLIS)));
-    window.topmost(true);
     window.set_position(20, 20);
 
     // this will be where we write out pixel values
@@ -142,7 +155,7 @@ fn main() {
         player_bounds = player.bounds();
 
         // find movement speed
-        let current_speed: f64 = match window.is_key_down(Key::LeftShift) {
+        let current_speed: f64 = match window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift) {
             false => PLAYER_WALKING_SPEED,
             true => PLAYER_RUNNING_SPEED,
         };
@@ -165,7 +178,7 @@ fn main() {
             if player.collides_with_x(&stuck_obj) {
                 stuck_obj.update(frame_time);
                 player.center.y =
-                    stuck_obj.bounds().3 + player.height / 2.0 - DIRECTIONAL_COLLISION_DEPTH / 2.0;
+                    stuck_obj.bounds().3 + player.height / 2.0 - COLLISION_DEPTH_BASE / 2.0;
             }
         }
 
@@ -183,21 +196,29 @@ fn main() {
 
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
-            if player.collides_with(object) {
-                if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
-                    player.center.x = bounds.0 - player.width / 2.0;
-                } else if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
+            for j in 0.. {
+                if !player.collides_with(object) {
+                    break;
+                }
+
+                // if we collide with the object, decide the best
+                // way to move ourselves outside of the object
+                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.1 + player.width / 2.0;
+                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
+                    player.center.x = bounds.0 - player.width / 2.0;
                 }
                 // if we're on top of a moving object, move with it
-                else if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
+                else if player_bounds.2 >= bounds.3 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x += object.prev_move.x;
-                    player.center.y = bounds.3 + player.height / 2.0;
+
+                    // + 0.001 fixes bugs, doesn't affect movement because player will stick to the platform
+                    player.center.y = bounds.3 + player.height / 2.0 + 0.001;
 
                     stuck_platform = Some(object.clone());
 
                     on_object = true;
-                } else if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
+                } else if player_bounds.3 <= bounds.2 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.y = bounds.2 - player.height / 2.0;
 
                     under_object = true;
@@ -208,18 +229,26 @@ fn main() {
         for i in 0..static_objects.len() {
             let bounds = static_object_bounds[i];
 
-            // if we collide with the object, decide the best
-            // way to move ourselves outside of the object
-            if player.collides_with(&static_objects[i]) {
-                if player_bounds.0 >= bounds.1 - DIRECTIONAL_COLLISION_DEPTH {
+            // this loop is here so that we can't phase through
+            // an object if we go fast enough, but still keep
+            // the area where the player is considered colliding
+            // on multiple sides of the object as small as possible
+            for j in 0.. {
+                if !player.collides_with(&static_objects[i]) {
+                    break;
+                }
+
+                // if we collide with the object, decide the best
+                // way to move ourselves outside of the object
+                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.1 + player.width / 2.0;
-                } else if player_bounds.1 <= bounds.0 + DIRECTIONAL_COLLISION_DEPTH {
+                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.0 - player.width / 2.0;
-                } else if player_bounds.2 >= bounds.3 - DIRECTIONAL_COLLISION_DEPTH {
+                } else if player_bounds.2 >= bounds.3 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.y = bounds.3 + player.height / 2.0;
 
                     on_object = true;
-                } else if player_bounds.3 <= bounds.2 + DIRECTIONAL_COLLISION_DEPTH {
+                } else if player_bounds.3 <= bounds.2 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.y = bounds.2 - player.height / 2.0;
 
                     under_object = true;
@@ -252,6 +281,13 @@ fn main() {
             player.center = Vector2::new(400.0, 300.0);
         }
 
+        // move our camera
+        if player.center.x - camera_bottom_left.x < MIN_X_FROM_CAMERA {
+            camera_bottom_left.x += (camera_bottom_left.x - MIN_X_FROM_CAMERA) * frame_time * CAMERA_MOVING_EASING;
+        } else if player.center.x - camera_bottom_left.x > MAX_X_FROM_CAMERA {
+            camera_bottom_left.x += (MIN_X_FROM_CAMERA - camera_bottom_left.x) * frame_time * CAMERA_MOVING_EASING;
+        }
+
         //
         // graphics rendering below
         //
@@ -259,26 +295,26 @@ fn main() {
         for x in 0..WINDOW_WIDTH {
             for y in 0..WINDOW_HEIGHT {
                 let rgb: u32;
-                let point = Vector2::new(x as f64, (WINDOW_HEIGHT - y) as f64);
+                let world_point = Vector2::new(camera_bottom_left.x + x as f64, camera_bottom_left.y + (WINDOW_HEIGHT - y) as f64);
 
                 let mut static_object_collision: bool = false;
                 let mut moving_object_collision: bool = false;
 
                 // determine collision with static objects
                 for bounds in &static_object_bounds {
-                    if contains_point_cache_bounds(&point, &bounds) {
+                    if contains_point_cache_bounds(&world_point, &bounds) {
                         static_object_collision = true;
                     }
                 }
 
                 // determine collision with moving objects
                 for moving_object in &moving_objects {
-                    if moving_object.contains_point(&point) {
+                    if moving_object.contains_point(&world_point) {
                         moving_object_collision = true;
                     }
                 }
 
-                if contains_point_cache_bounds(&point, &player_bounds) {
+                if contains_point_cache_bounds(&world_point, &player_bounds) {
                     rgb = 0xff0000;
                 } else if moving_object_collision {
                     rgb = 0xff00;

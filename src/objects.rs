@@ -49,7 +49,7 @@ impl Vector2 {
 // ensures f2 is beteen f1 and f3
 // (f1 must be below f3)
 fn sandwitch(f1: f64, f2: f64, f3: f64) -> bool {
-    f1 <= f2 && f2 <= f3
+    f1 < f2 && f2 < f3
 }
 
 //
