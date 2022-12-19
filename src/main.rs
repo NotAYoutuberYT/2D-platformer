@@ -5,6 +5,14 @@ use minifb::{Key, Window, WindowOptions};
 mod objects;
 use objects::{bounds_contain_point, MovingObject, RectObject, RigidBody, StaticObject, Vector2};
 
+// this is used in main (f64 doesn't implement ord so we have to write this ourselves)
+fn f64_min(f1: f64, f2: f64) -> f64 {
+    match f1 < f2 {
+        true => f1,
+        false => f2,
+    }
+}
+
 //
 // constants
 //
@@ -14,16 +22,21 @@ const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
 const FPS: f64 = 144.0;
 
-// player control stuff
-const PLAYER_WALKING_SPEED: f64 = 3.2;
-const PLAYER_RUNNING_SPEED: f64 = 5.0;
+// player stuff
+const PLAYER_WALKING_SPEED: f64 = 2.9;
+const PLAYER_RUNNING_SPEED: f64 = 3.6;
+const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
+
+// physics stuff
+const FRICTION_GROUND: f64 = 0.7;
+const FRICTION_AIR: f64 = 0.08;
 
 // stuff pertaining to keeping the camera focused on the player
 const PERCENT_SCREEN_PLAYER_IN_X: f64 = 18.0;
 const PERCENT_SCREEN_PLAYER_IN_Y: f64 = 17.5;
 const PLAYER_FOCUS_X_OFFSET: f64 = 0.0;
 const PLAYER_FOCUS_Y_OFFSET: f64 = -230.0;
-const CAMERA_MOVING_EASING_X: f64 = 1.0 / 300.0;
+const CAMERA_MOVING_EASING_X: f64 = 1.0 / 750.0;
 const CAMERA_MOVING_EASING_Y: f64 = 1.0 / 1300.0;
 
 // jump stuff
@@ -31,8 +44,8 @@ const JUMP_FORCE: f64 = 5.0;
 const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
 
 // gravity
-const GRAVITY_MOVING_UP: f64 = 1.0 / 7.8;
-const GRAVITY_MOVING_DOWN: f64 = 1.0 / 4.5;
+const GRAVITY_MOVING_UP: f64 = -1.0 / 7.8;
+const GRAVITY_MOVING_DOWN: f64 = -1.0 / 4.5;
 const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
 // increasing this may increase performance on low fps
@@ -70,7 +83,6 @@ fn main() {
         height: 40.0,
 
         velocity: Vector2::new(0.0, 0.0),
-        density: 0.0,
         static_friction: false,
     };
 
@@ -96,7 +108,7 @@ fn main() {
             height: 50.0,
         },
         StaticObject {
-            center: Vector2::new(406.5, 675.0),
+            center: Vector2::new(406.5, 665.0),
             width: 43.0,
             height: 20.0,
         },
@@ -182,6 +194,9 @@ fn main() {
     // this prevent "bouncing" on downward moving platforms
     let mut stuck_platform: Option<MovingObject> = None;
 
+    // these are used in physics so it's in scope outside of game loop
+    let mut on_object: bool = false;
+
     //
     // game loop
     //
@@ -197,35 +212,61 @@ fn main() {
         // this is where the player's acceleration is stored
         let mut player_acceleration: Vector2 = Vector2::new(0.0, 0.0);
 
-        // find gravity
+        // configure vertical acceleration (gravity)
         player_acceleration.y = match player.velocity.y <= 0.0 {
             false => GRAVITY_MOVING_UP,
             true => GRAVITY_MOVING_DOWN,
         };
 
+        // configure horizontal acceleration (movement)
+        let mut current_accel_speed = match window.is_key_down(Key::LeftShift) {
+            true => PLAYER_RUNNING_SPEED,
+            false => PLAYER_WALKING_SPEED,
+        };
+        if !on_object {
+            current_accel_speed *= PLAYER_AIR_ACCELL_RATIO;
+        }
+
+        if window.is_key_down(Key::D) {
+            player_acceleration.x += current_accel_speed;
+        }
+        if window.is_key_down(Key::A) {
+            player_acceleration.x -= current_accel_speed;
+        }
+
+        // configure horizontal acceleration (crude friction)
+        let current_friction = f64_min(
+            player.velocity.x.abs(),
+            match on_object {
+                true => FRICTION_GROUND * player.velocity.x.abs(),
+                false => FRICTION_AIR * player.velocity.x.abs(),
+            },
+        );
+
+        if player.velocity.x < 0.0 {
+            player_acceleration.x += current_friction;
+        } else {
+            player_acceleration.x -= current_friction;
+        }
+
+        if window.is_key_pressed(Key::Q, minifb::KeyRepeat::No) {
+            println!("current_friction: {current_friction:?}, current_accel_speed: {current_accel_speed:?}, vel x: {:?}, acc x: {:?}", player.velocity.x, player_acceleration.x);
+        }
+
         // move the player (we integrate the player's movement instead of approximating
         // to make the physics continuous and therefore frame-independent)
-        let movement_vector: Vector2 =
-        Vector2::add(&Vector2::multiply(&player_acceleration, frame_time * frame_time / 2.0), &Vector2::multiply(&player.velocity, frame_time));
+        let movement_vector: Vector2 = Vector2::add(
+            &Vector2::multiply(&player_acceleration, frame_time * frame_time / 2.0),
+            &Vector2::multiply(&player.velocity, frame_time),
+        );
         player.move_by(&movement_vector);
 
         // update velocity
-        player.velocity.y -= player_acceleration.y * frame_time;
+        Vector2::multiply(&player_acceleration, frame_time).add_to(&mut player.velocity);
 
-        // find movement speed
-        let current_speed: f64 =
-            match window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift) {
-                false => PLAYER_WALKING_SPEED,
-                true => PLAYER_RUNNING_SPEED,
-            };
-
-        // apply movement speed
-        if window.is_key_down(Key::A) {
-            player.center.x -= current_speed * frame_time;
-        }
-        if window.is_key_down(Key::D) {
-            player.center.x += current_speed * frame_time;
-        }
+        //
+        // moving platform stuff
+        //
 
         // update moving platforms
         for moving_object in &mut moving_objects {
@@ -247,8 +288,9 @@ fn main() {
         // collision handling
         //
 
-        let mut on_object = false;
-        let mut under_object = false;
+        on_object = false;
+        let mut under_object: bool = false;
+        let mut on_side: bool = false;
 
         // cache player bounds for physics
         player_bounds = player.bounds();
@@ -267,8 +309,12 @@ fn main() {
                 // way to move ourselves outside of the object
                 if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.1 + player.width / 2.0;
+
+                    on_side = true;
                 } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.0 - player.width / 2.0;
+
+                    on_side = true;
                 }
                 // if we're on top of a moving object, move with it
                 else if player_bounds.2 >= bounds.3 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
@@ -304,8 +350,12 @@ fn main() {
                 // way to move ourselves outside of the object
                 if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.1 + player.width / 2.0;
+
+                    on_side = true;
                 } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.x = bounds.0 - player.width / 2.0;
+
+                    on_side = true;
                 } else if player_bounds.2 >= bounds.3 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
                     player.center.y = bounds.3 + player.height / 2.0;
 
@@ -323,6 +373,10 @@ fn main() {
         //
 
         jump_buffer -= frame_time;
+
+        if on_side {
+            player.velocity.x = 0.0;
+        }
 
         // if space is pressed, start jump buffer
         if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) {

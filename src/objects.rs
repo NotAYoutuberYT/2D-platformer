@@ -150,7 +150,6 @@ pub struct RigidBody {
     pub height: f64,
 
     pub velocity: Vector2,
-    pub density: f64,
     pub static_friction: bool,
 }
 
