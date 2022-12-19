@@ -17,13 +17,20 @@ fn f64_min(f1: f64, f2: f64) -> f64 {
 // constants
 //
 
+// colors :)
+const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
+const SPRINTING_PLAYER_COLOR: u32 = 0xff3a50;
+const MOVING_OBJECT_COLOR: u32 = 0xff00;
+const STATIC_OBJECT_COLOR: u32 = 0xff;
+const BACKGROUND_COLOR: u32 = 0x200020;
+
 // window stuff
 const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
-const FPS: f64 = 144.0;
+const FPS: f64 = 120.0;
 
 // player stuff
-const PLAYER_WALKING_SPEED: f64 = 2.9;
+const PLAYER_WALKING_SPEED: f64 = 2.4;
 const PLAYER_RUNNING_SPEED: f64 = 3.6;
 const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
 
@@ -41,7 +48,7 @@ const CAMERA_MOVING_EASING_Y: f64 = 1.0 / 1300.0;
 
 // jump stuff
 const JUMP_FORCE: f64 = 5.0;
-const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
+const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0006;
 
 // gravity
 const GRAVITY_MOVING_UP: f64 = -1.0 / 7.8;
@@ -89,7 +96,7 @@ fn main() {
     let static_objects = [
         StaticObject {
             center: Vector2::new(510.0, -50.0),
-            width: 1750.0,
+            width: 1000.0,
             height: 400.0,
         },
         StaticObject {
@@ -132,7 +139,7 @@ fn main() {
     let mut moving_objects = [
         MovingObject::new(
             Vector2::new(300.0, 245.0),
-            Vector2::new(265.0, 575.0),
+            Vector2::new(265.0, 565.0),
             80.0,
             35.0,
             150.0,
@@ -140,16 +147,16 @@ fn main() {
         ),
         MovingObject::new(
             Vector2::new(575.0, 390.0),
-            Vector2::new(775.0, 545.0),
+            Vector2::new(735.0, 545.0),
             100.0,
             35.0,
             150.0,
             false,
         ),
         MovingObject::new(
-            Vector2::new(200.0, 770.0),
+            Vector2::new(175.0, 770.0),
             Vector2::new(-1000.0, 60.0),
-            150.0,
+            200.0,
             30.0,
             360.0,
             false,
@@ -298,8 +305,10 @@ fn main() {
         for object in &moving_objects {
             let bounds = object.bounds();
 
-            // if we collide with the object, decide the best
-            // way to move ourselves outside of the object
+            // this loop is here so that we can't phase through
+            // an object if we go fast enough, but still keep
+            // the area where the player is considered colliding
+            // on multiple sides of the object as small as possible
             for j in 0..COLLISION_MAX_LOOPS {
                 if !player.collides_with(object) {
                     break;
@@ -307,11 +316,15 @@ fn main() {
 
                 // if we collide with the object, decide the best
                 // way to move ourselves outside of the object
-                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
+                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64
+                    && player.velocity.x <= 0.0
+                {
                     player.center.x = bounds.1 + player.width / 2.0;
 
                     on_side = true;
-                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
+                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64
+                    && player.velocity.x >= 0.0
+                {
                     player.center.x = bounds.0 - player.width / 2.0;
 
                     on_side = true;
@@ -348,11 +361,15 @@ fn main() {
 
                 // if we collide with the object, decide the best
                 // way to move ourselves outside of the object
-                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
+                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64
+                    && player.velocity.x <= 0.0
+                {
                     player.center.x = bounds.1 + player.width / 2.0;
 
                     on_side = true;
-                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
+                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64
+                    && player.velocity.x >= 0.0
+                {
                     player.center.x = bounds.0 - player.width / 2.0;
 
                     on_side = true;
@@ -455,14 +472,23 @@ fn main() {
 
         for x in 0..WINDOW_WIDTH {
             for y in 0..WINDOW_HEIGHT {
+                // what the rgb value of the pixel will be
                 let rgb: u32;
+
+                // the coordinate in the world that this pixel is
                 let world_point = Vector2::new(
                     camera_bottom_left.x + x as f64,
                     camera_bottom_left.y + (WINDOW_HEIGHT - y) as f64,
                 );
 
+                let mut player_collision: bool = false;
                 let mut static_object_collision: bool = false;
                 let mut moving_object_collision: bool = false;
+
+                // determine collision with player
+                if bounds_contain_point(&world_point, &player_bounds) {
+                    player_collision = true;
+                }
 
                 // determine collision with static objects
                 for bounds in &static_object_bounds {
@@ -478,14 +504,16 @@ fn main() {
                     }
                 }
 
-                if bounds_contain_point(&world_point, &player_bounds) {
-                    rgb = 0xff0000;
+                if player_collision && window.is_key_down(Key::LeftShift) {
+                    rgb = SPRINTING_PLAYER_COLOR;
+                } else if player_collision {
+                    rgb = NORMAL_PLAYER_COLOR;
                 } else if moving_object_collision {
-                    rgb = 0xff00;
+                    rgb = MOVING_OBJECT_COLOR;
                 } else if static_object_collision {
-                    rgb = 0xff;
+                    rgb = STATIC_OBJECT_COLOR;
                 } else {
-                    rgb = 0x200020;
+                    rgb = BACKGROUND_COLOR;
                 }
 
                 window_buffer[y * WINDOW_WIDTH + x] = rgb;
