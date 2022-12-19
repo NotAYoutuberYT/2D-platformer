@@ -3,34 +3,46 @@ extern crate minifb;
 use minifb::{Key, Window, WindowOptions};
 
 mod objects;
-use objects::{
-    contains_point_cache_bounds, MovingObject, RectObject, RigidBody, StaticObject, Vector2,
-};
+use objects::{bounds_contain_point, MovingObject, RectObject, RigidBody, StaticObject, Vector2};
 
+//
+// constants
+//
+
+// window stuff
 const WINDOW_WIDTH: usize = 0xff * 4;
 const WINDOW_HEIGHT: usize = 0xff * 3;
 const FPS: f64 = 144.0;
 
+// player control stuff
 const PLAYER_WALKING_SPEED: f64 = 3.2;
 const PLAYER_RUNNING_SPEED: f64 = 5.0;
 
+// stuff pertaining to keeping the camera focused on the player
 const PERCENT_SCREEN_PLAYER_IN_X: f64 = 18.0;
-const PERCENT_SCREEN_PLAYER_IN_Y: f64 = 22.0;
+const PERCENT_SCREEN_PLAYER_IN_Y: f64 = 17.5;
 const PLAYER_FOCUS_X_OFFSET: f64 = 0.0;
-const PLAYER_FOCUS_Y_OFFSET: f64 = -200.0;
-const CAMERA_MOVING_EASING_X: f64 = 1.0 / 250.0;
-const CAMERA_MOVING_EASING_Y: f64 = 1.0 / 350.0;
+const PLAYER_FOCUS_Y_OFFSET: f64 = -230.0;
+const CAMERA_MOVING_EASING_X: f64 = 1.0 / 300.0;
+const CAMERA_MOVING_EASING_Y: f64 = 1.0 / 1300.0;
 
-const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
+// jump stuff
 const JUMP_FORCE: f64 = 5.0;
+const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0005;
 
+// gravity
 const GRAVITY_MOVING_UP: f64 = 1.0 / 7.8;
 const GRAVITY_MOVING_DOWN: f64 = 1.0 / 4.5;
 const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
 // increasing this may increase performance on low fps
 // but will make player snap to the edges of platforms
-const COLLISION_DEPTH_BASE: f64 = 2.0;
+const COLLISION_DEPTH_BASE: f64 = 3.5;
+const COLLISION_MAX_LOOPS: u32 = 12;
+
+//
+// don't touch these constants
+//
 
 const MIN_X_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0
     - PERCENT_SCREEN_PLAYER_IN_X / 200.0 * WINDOW_WIDTH as f64
@@ -45,12 +57,13 @@ const MAX_Y_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0
     + PERCENT_SCREEN_PLAYER_IN_Y / 200.0 * WINDOW_HEIGHT as f64
     + PLAYER_FOCUS_Y_OFFSET;
 
-// don't touch these consts, they're decided by those above
-
 const FRAME_LIMIT_MILLIS: u64 = (1000.0 / FPS) as u64;
 
+//
+// main
+//
+
 fn main() {
-    // our player
     let mut player = RigidBody {
         center: Vector2::new(400.0, 300.0),
         width: 20.0,
@@ -63,9 +76,9 @@ fn main() {
 
     let static_objects = [
         StaticObject {
-            center: Vector2::new(510.0, 50.0),
+            center: Vector2::new(510.0, -50.0),
             width: 1750.0,
-            height: 200.0,
+            height: 400.0,
         },
         StaticObject {
             center: Vector2::new(430.0, 185.0),
@@ -83,8 +96,8 @@ fn main() {
             height: 50.0,
         },
         StaticObject {
-            center: Vector2::new(407.5, 675.0),
-            width: 45.0,
+            center: Vector2::new(406.5, 675.0),
+            width: 43.0,
             height: 20.0,
         },
         StaticObject {
@@ -126,7 +139,7 @@ fn main() {
             Vector2::new(-1000.0, 60.0),
             150.0,
             30.0,
-            270.0,
+            360.0,
             false,
         ),
     ];
@@ -142,13 +155,13 @@ fn main() {
         panic!("Error opening window: {}", error);
     });
 
-    // this will store the location of the bottom left corner of the rendring window
-    let mut camera_bottom_left: Vector2 =
-        Vector2::new(player.center.x - WINDOW_WIDTH as f64 / 2.0, 0.0);
-
     // configure the window
     window.limit_update_rate(Some(std::time::Duration::from_millis(FRAME_LIMIT_MILLIS)));
     window.set_position(20, 20);
+
+    // this will store the location of the bottom left corner of the rendring window
+    let mut camera_bottom_left: Vector2 =
+        Vector2::new(player.center.x - WINDOW_WIDTH as f64 / 2.0, 0.0);
 
     // this will be where we write out pixel values
     let mut window_buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
@@ -164,40 +177,40 @@ fn main() {
         .iter()
         .map(|object| object.bounds())
         .collect();
-
     let mut player_bounds: (f64, f64, f64, f64);
 
     // this prevent "bouncing" on downward moving platforms
     let mut stuck_platform: Option<MovingObject> = None;
 
     //
-    // game loop starts here
+    // game loop
     //
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         // used to measure the frame time
-        let now = std::time::Instant::now();
+        let frame_start = std::time::Instant::now();
 
-        let gravity: f64;
+        //
+        // player movement and velocity
+        //
+
+        // this is where the player's acceleration is stored
+        let mut player_acceleration: Vector2 = Vector2::new(0.0, 0.0);
 
         // find gravity
-        gravity = match player.velocity.y <= 0.0 {
+        player_acceleration.y = match player.velocity.y <= 0.0 {
             false => GRAVITY_MOVING_UP,
             true => GRAVITY_MOVING_DOWN,
         };
 
         // move the player (we integrate the player's movement instead of approximating
         // to make the physics continuous and therefore frame-independent)
-        let mut movement_vector = Vector2::new(0.0, 0.0);
-        movement_vector.y =
-            gravity * frame_time * frame_time / 2.0 + frame_time * player.velocity.y;
+        let movement_vector: Vector2 =
+        Vector2::add(&Vector2::multiply(&player_acceleration, frame_time * frame_time / 2.0), &Vector2::multiply(&player.velocity, frame_time));
         player.move_by(&movement_vector);
 
         // update velocity
-        player.velocity.y -= gravity * frame_time;
-
-        // recache bounds for physics
-        player_bounds = player.bounds();
+        player.velocity.y -= player_acceleration.y * frame_time;
 
         // find movement speed
         let current_speed: f64 =
@@ -231,18 +244,21 @@ fn main() {
         stuck_platform = None;
 
         //
-        // collision handling here
+        // collision handling
         //
 
         let mut on_object = false;
         let mut under_object = false;
+
+        // cache player bounds for physics
+        player_bounds = player.bounds();
 
         for object in &moving_objects {
             let bounds = object.bounds();
 
             // if we collide with the object, decide the best
             // way to move ourselves outside of the object
-            for j in 0.. {
+            for j in 0..COLLISION_MAX_LOOPS {
                 if !player.collides_with(object) {
                     break;
                 }
@@ -279,7 +295,7 @@ fn main() {
             // an object if we go fast enough, but still keep
             // the area where the player is considered colliding
             // on multiple sides of the object as small as possible
-            for j in 0.. {
+            for j in 0..COLLISION_MAX_LOOPS {
                 if !player.collides_with(&static_objects[i]) {
                     break;
                 }
@@ -302,6 +318,10 @@ fn main() {
             }
         }
 
+        //
+        // final physics before rendering graphics
+        //
+
         jump_buffer -= frame_time;
 
         // if space is pressed, start jump buffer
@@ -322,18 +342,22 @@ fn main() {
         // recache bounds for graphics
         player_bounds = player.bounds();
 
-        // this is for testing purposes
+        // respawn (temporary for prototype)
         if player.center.y < -20.0 {
             player.center = Vector2::new(400.0, 300.0);
         }
 
-        // move our camera
+        //
+        // keep the camera centered on the player
+        //
+
         if player.center.x - camera_bottom_left.x < MIN_X_FROM_CAMERA {
             camera_bottom_left.x -= (player.center.x - camera_bottom_left.x - MIN_X_FROM_CAMERA)
                 * (player.center.x - camera_bottom_left.x - MIN_X_FROM_CAMERA)
                 * frame_time
                 * CAMERA_MOVING_EASING_X;
 
+            // avoid over-correcting the camera
             if player.center.x - camera_bottom_left.x > MIN_X_FROM_CAMERA {
                 camera_bottom_left.x = player.center.x - MIN_X_FROM_CAMERA;
             }
@@ -343,6 +367,7 @@ fn main() {
                 * frame_time
                 * CAMERA_MOVING_EASING_X;
 
+            // avoid over-correcting the camera
             if player.center.x - camera_bottom_left.x < MAX_X_FROM_CAMERA {
                 camera_bottom_left.x = player.center.x - MAX_X_FROM_CAMERA;
             }
@@ -352,8 +377,9 @@ fn main() {
             camera_bottom_left.y -= (player.center.y - camera_bottom_left.y - MIN_Y_FROM_CAMERA)
                 * (player.center.y - camera_bottom_left.y - MIN_Y_FROM_CAMERA)
                 * frame_time
-                * CAMERA_MOVING_EASING_X;
+                * CAMERA_MOVING_EASING_Y;
 
+            // avoid over-correcting the camera
             if player.center.y - camera_bottom_left.y > MIN_Y_FROM_CAMERA {
                 camera_bottom_left.y = player.center.y - MIN_Y_FROM_CAMERA;
             }
@@ -363,13 +389,14 @@ fn main() {
                 * frame_time
                 * CAMERA_MOVING_EASING_Y;
 
+            // avoid over-correcting the camera
             if player.center.y - camera_bottom_left.y < MAX_Y_FROM_CAMERA {
                 camera_bottom_left.y = player.center.y - MAX_Y_FROM_CAMERA;
             }
         }
 
         //
-        // graphics rendering below
+        // graphics rendering
         //
 
         for x in 0..WINDOW_WIDTH {
@@ -385,7 +412,7 @@ fn main() {
 
                 // determine collision with static objects
                 for bounds in &static_object_bounds {
-                    if contains_point_cache_bounds(&world_point, &bounds) {
+                    if bounds_contain_point(&world_point, &bounds) {
                         static_object_collision = true;
                     }
                 }
@@ -397,7 +424,7 @@ fn main() {
                     }
                 }
 
-                if contains_point_cache_bounds(&world_point, &player_bounds) {
+                if bounds_contain_point(&world_point, &player_bounds) {
                     rgb = 0xff0000;
                 } else if moving_object_collision {
                     rgb = 0xff00;
@@ -419,6 +446,6 @@ fn main() {
             });
 
         // update how long the frame took
-        frame_time = now.elapsed().as_micros() as f64 / 10000.0;
+        frame_time = frame_start.elapsed().as_micros() as f64 / 10000.0;
     }
 }

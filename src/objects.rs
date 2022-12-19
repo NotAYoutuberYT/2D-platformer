@@ -1,19 +1,15 @@
 #![allow(dead_code)]
 
 // basic vector2 struct
+#[derive(Clone)]
 pub struct Vector2 {
     pub x: f64,
     pub y: f64,
 }
 
 impl Vector2 {
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new(x: f64, y: f64) -> Vector2 {
         Vector2 { x: x, y: y }
-    }
-
-    // returns a copy of self
-    pub fn clone(&self) -> Vector2 {
-        Vector2::new(self.x, self.y)
     }
 
     // makes set equal to passed vector
@@ -27,8 +23,8 @@ impl Vector2 {
         Vector2::new(vector1.x + vector2.x, vector1.y + vector2.y)
     }
 
-    pub fn multiply(vector1: &Vector2, scalar: f64) -> Vector2 {
-        Vector2::new(vector1.x * scalar, vector1.y * scalar)
+    pub fn multiply(vector: &Vector2, scalar: f64) -> Vector2 {
+        Vector2::new(vector.x * scalar, vector.y * scalar)
     }
 
     // linearly interpolates the two vectors
@@ -138,24 +134,16 @@ pub trait RectObject {
 
 // given a Vector2, determines if that vector lies within
 // the object (being on an edge counts as being inside)
-pub fn contains_point_cache_bounds(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> bool {
-    let mut inside: bool = true;
-
-    // if we detect the point outside of the
-    // box at any time, set inside to false
-    if point.x < bounds.0 || bounds.1 < point.x {
-        inside = false;
-    } else if point.y < bounds.2 || bounds.3 < point.y {
-        inside = false;
-    }
-
-    inside
+pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> bool {
+    // if we detect the point too far to the left, too far the right, too far down, or too high up, return false
+    !(point.x < bounds.0 || bounds.1 < point.x || point.y < bounds.2 || bounds.3 < point.y)
 }
 
 //
 // RigidBody code
 //
 
+#[derive(Clone)]
 pub struct RigidBody {
     pub center: Vector2,
     pub width: f64,
@@ -229,6 +217,7 @@ pub enum MovingObjectDirections {
     Standstil,
 }
 
+#[derive(Clone)]
 pub struct MovingObject {
     pub start_pos: Vector2,
     pub end_pos: Vector2,
@@ -237,7 +226,7 @@ pub struct MovingObject {
     pub move_time: f64,
     pub fallthrough: bool,
 
-    moving_time: f64, // percent of time until destination point reached
+    amount_traveled: f64, // amount of the path traveled
     pub direction: MovingObjectDirections,
     pub center: Vector2,
 
@@ -245,7 +234,7 @@ pub struct MovingObject {
 }
 
 impl MovingObject {
-    // creates a new leaving moving platform at startpoing
+    // creates a new leaving moving platform at start point
     pub fn new(
         start_pos: Vector2,
         end_pos: Vector2,
@@ -253,7 +242,7 @@ impl MovingObject {
         height: f64,
         move_time: f64,
         fallthrough: bool,
-    ) -> Self {
+    ) -> MovingObject {
         let center: Vector2 = start_pos.clone();
 
         MovingObject {
@@ -264,28 +253,11 @@ impl MovingObject {
             move_time: move_time,
             fallthrough: fallthrough,
 
-            moving_time: 0.0,
+            amount_traveled: 0.0,
             direction: MovingObjectDirections::Leaving,
             center: center,
 
             prev_move: Vector2::new(0.0, 0.0),
-        }
-    }
-
-    pub fn clone(&self) -> MovingObject {
-        MovingObject {
-            start_pos: self.start_pos.clone(),
-            end_pos: self.end_pos.clone(),
-            width: self.width,
-            height: self.height,
-            move_time: self.move_time,
-            fallthrough: self.fallthrough,
-
-            moving_time: self.moving_time,
-            direction: self.direction.clone(),
-            center: self.center.clone(),
-
-            prev_move: self.prev_move.clone(),
         }
     }
 
@@ -305,13 +277,13 @@ impl MovingObject {
             return;
         }
 
-        self.moving_time += ammount / self.move_time;
+        self.amount_traveled += ammount / self.move_time;
 
         // this prevents overflow
-        self.moving_time %= 2.0;
+        self.amount_traveled %= 2.0;
 
         // sets moving direction to be correct
-        if self.moving_time <= 1.0 {
+        if self.amount_traveled <= 1.0 {
             self.direction = MovingObjectDirections::Leaving;
         } else {
             self.direction = MovingObjectDirections::Returning;
@@ -320,9 +292,9 @@ impl MovingObject {
         // configures the lerp ammount
         let lerp_ammount: f64;
         if self.direction == MovingObjectDirections::Leaving {
-            lerp_ammount = self.moving_time;
+            lerp_ammount = self.amount_traveled;
         } else {
-            lerp_ammount = 2.0 - self.moving_time;
+            lerp_ammount = 2.0 - self.amount_traveled;
         }
 
         // lerp between the two points to determine the center of the moving platform
@@ -383,6 +355,7 @@ impl RectObject for MovingObject {
 // StaticObject code
 //
 
+#[derive(Clone)]
 pub struct StaticObject {
     pub center: Vector2,
     pub width: f64,
