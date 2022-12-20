@@ -1,5 +1,10 @@
+/* This project uses a library (known as a crate in Rust) called minifb. It is
+owned by Daniel Collin. It can be found on crates.io at https://crates.io/crates/minifb
+or on GitHub at https://github.com/emoon/rust_minifb. To use in a project, put the line
+of code "minifb = "0.23" into the cargo.toml file of a cargo-initilized project. This
+crate is what allows me to open a window and write rgb values to each pixel of the window. All
+code for representing objects, rendring those objects, and performing physics is written by Bryce Holland. */
 extern crate minifb;
-
 use minifb::{Key, Window, WindowOptions};
 
 mod objects;
@@ -19,19 +24,19 @@ fn f64_min(f1: f64, f2: f64) -> f64 {
 
 // colors :)
 const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
-const SPRINTING_PLAYER_COLOR: u32 = 0xff3a50;
+const SPRINTING_PLAYER_COLOR: u32 = 0xff3c60;
 const MOVING_OBJECT_COLOR: u32 = 0xff00;
 const STATIC_OBJECT_COLOR: u32 = 0xff;
 const BACKGROUND_COLOR: u32 = 0x200020;
 
 // window stuff
-const WINDOW_WIDTH: usize = 0xff * 4;
-const WINDOW_HEIGHT: usize = 0xff * 3;
-const FPS: f64 = 120.0;
+const WINDOW_WIDTH: usize = 260 * 4;
+const WINDOW_HEIGHT: usize = 260 * 3;
+const FPS: f64 = 144.0;
 
 // player stuff
-const PLAYER_WALKING_SPEED: f64 = 2.4;
-const PLAYER_RUNNING_SPEED: f64 = 3.6;
+const PLAYER_WALKING_ACCEL: f64 = 2.4;
+const PLAYER_RUNNING_ACCEL: f64 = 3.6;
 const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
 
 // physics stuff
@@ -226,18 +231,19 @@ fn main() {
         };
 
         // configure horizontal acceleration (movement)
-        let mut current_accel_speed = match window.is_key_down(Key::LeftShift) {
-            true => PLAYER_RUNNING_SPEED,
-            false => PLAYER_WALKING_SPEED,
-        };
+        let mut current_accel_speed =
+            match window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift) {
+                true => PLAYER_RUNNING_ACCEL,
+                false => PLAYER_WALKING_ACCEL,
+            };
         if !on_object {
             current_accel_speed *= PLAYER_AIR_ACCELL_RATIO;
         }
 
-        if window.is_key_down(Key::D) {
+        if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
             player_acceleration.x += current_accel_speed;
         }
-        if window.is_key_down(Key::A) {
+        if window.is_key_down(Key::A) || window.is_key_down(Key::Left) {
             player_acceleration.x -= current_accel_speed;
         }
 
@@ -261,7 +267,7 @@ fn main() {
         }
 
         // move the player (we integrate the player's movement instead of approximating
-        // to make the physics continuous and therefore frame-independent)
+        // to make the physics continuous and therefore framerate-independent)
         let movement_vector: Vector2 = Vector2::add(
             &Vector2::multiply(&player_acceleration, frame_time * frame_time / 2.0),
             &Vector2::multiply(&player.velocity, frame_time),
@@ -275,9 +281,9 @@ fn main() {
         // moving platform stuff
         //
 
-        // update moving platforms
+        // update the position of moving platforms
         for moving_object in &mut moving_objects {
-            (moving_object.update(frame_time));
+            moving_object.update(frame_time);
         }
 
         // move into the platform we're stuck to if it exists
@@ -396,7 +402,10 @@ fn main() {
         }
 
         // if space is pressed, start jump buffer
-        if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) {
+        if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No)
+            || window.is_key_pressed(Key::W, minifb::KeyRepeat::No)
+            || window.is_key_pressed(Key::Up, minifb::KeyRepeat::No)
+        {
             jump_buffer = JUMP_BUFFER_HUNDRETHSECS;
         }
 
@@ -504,7 +513,9 @@ fn main() {
                     }
                 }
 
-                if player_collision && window.is_key_down(Key::LeftShift) {
+                if player_collision
+                    && (window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift))
+                {
                     rgb = SPRINTING_PLAYER_COLOR;
                 } else if player_collision {
                     rgb = NORMAL_PLAYER_COLOR;

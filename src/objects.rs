@@ -43,8 +43,8 @@ impl Vector2 {
 }
 
 // ensures f2 is beteen f1 and f3
-// (f1 must be below f3)
-fn sandwitch(f1: f64, f2: f64, f3: f64) -> bool {
+// (f1 must be below f3 for a return of true)
+fn sandwich(f1: f64, f2: f64, f3: f64) -> bool {
     f1 < f2 && f2 < f3
 }
 
@@ -89,10 +89,10 @@ pub trait RectObject {
 
         let mut collides: bool = false;
 
-        if sandwitch(other_bounds.0, self_bounds.0, other_bounds.1) {
+        if sandwich(other_bounds.0, self_bounds.0, other_bounds.1) {
             // is self's leftmost side in other?
             collides = true;
-        } else if sandwitch(other_bounds.0, self_bounds.1, other_bounds.1) {
+        } else if sandwich(other_bounds.0, self_bounds.1, other_bounds.1) {
             // is self's rightmost side in other?
             collides = true;
         } else if self_bounds.0 <= other_bounds.0 && other_bounds.1 < self_bounds.1 {
@@ -111,10 +111,10 @@ pub trait RectObject {
 
         let mut collides: bool = false;
 
-        if sandwitch(other_bounds.2, self_bounds.2, other_bounds.3) {
+        if sandwich(other_bounds.2, self_bounds.2, other_bounds.3) {
             // is self's bottom side in other?
             collides = true;
-        } else if sandwitch(other_bounds.2, self_bounds.3, other_bounds.3) {
+        } else if sandwich(other_bounds.2, self_bounds.3, other_bounds.3) {
             // is self's top side in other?
             collides = true;
         } else if self_bounds.2 <= other_bounds.2 && other_bounds.3 < self_bounds.3 {
