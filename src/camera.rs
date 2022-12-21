@@ -33,7 +33,7 @@ impl Camera {
             &(f64, f64, f64, f64),
             bool,
             &[(f64, f64, f64, f64)],
-            &Vec<(f64, f64, f64, f64)>
+            &Vec<(f64, f64, f64, f64)>,
         ) -> u32,
         player_bounds: &(f64, f64, f64, f64),
         is_sprinting: bool,

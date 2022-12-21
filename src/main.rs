@@ -468,15 +468,15 @@ fn main() {
 
         // put our rendered graphics into our buffer
         camera.render_frame(
-            &render_game,
-            &player_bounds,
-            window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift),
-            &static_object_bounds,
+            &render_game,   // render function
+            &player_bounds, // the player's bounds
+            window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift), // if the player is sprinting
+            &static_object_bounds, // static object bounds
             &moving_objects
                 .iter()
                 .map(|object| object.bounds())
-                .collect(),
-            &mut window_buffer,
+                .collect(), // moving object bounds
+            &mut window_buffer,    // mutable refrence to our window bounds
         );
 
         // update our window with our pixel values
