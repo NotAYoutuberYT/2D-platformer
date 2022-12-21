@@ -10,6 +10,60 @@ use minifb::{Key, Window, WindowOptions};
 mod objects;
 use objects::{bounds_contain_point, MovingObject, RectObject, RigidBody, StaticObject, Vector2};
 
+mod camera;
+use camera::Camera;
+
+mod constants;
+use constants::*; // all my constants have very specific names, so I'm comfortable doing this
+
+// this is the function we use to render the game
+fn render_game(
+    world_point: Vector2,
+    player_bounds: &(f64, f64, f64, f64),
+    is_sprinting: bool,
+    static_object_bounds: &[(f64, f64, f64, f64)],
+    moving_object_bounds: &Vec<(f64, f64, f64, f64)>,
+) -> u32 {
+    let rgb: u32;
+
+    let mut player_collision: bool = false;
+    let mut static_object_collision: bool = false;
+    let mut moving_object_collision: bool = false;
+
+    // determine collision with player
+    if bounds_contain_point(&world_point, player_bounds) {
+        player_collision = true;
+    }
+
+    // determine collision with static objects
+    static_object_bounds.iter().for_each(|bounds| {
+        if bounds_contain_point(&world_point, bounds) {
+            static_object_collision = true;
+        }
+    });
+
+    // determine collision with moving objects
+    moving_object_bounds.iter().for_each(|bounds| {
+        if bounds_contain_point(&world_point, bounds) {
+            moving_object_collision = true;
+        }
+    });
+
+    if player_collision && is_sprinting {
+        rgb = SPRINTING_PLAYER_COLOR;
+    } else if player_collision {
+        rgb = NORMAL_PLAYER_COLOR;
+    } else if moving_object_collision {
+        rgb = MOVING_OBJECT_COLOR;
+    } else if static_object_collision {
+        rgb = STATIC_OBJECT_COLOR;
+    } else {
+        rgb = BACKGROUND_COLOR;
+    }
+
+    rgb
+}
+
 // this is used in main (f64 doesn't implement ord so we have to write this ourselves)
 fn f64_min(f1: f64, f2: f64) -> f64 {
     match f1 < f2 {
@@ -17,72 +71,6 @@ fn f64_min(f1: f64, f2: f64) -> f64 {
         false => f2,
     }
 }
-
-//
-// constants
-//
-
-// colors :)
-const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
-const SPRINTING_PLAYER_COLOR: u32 = 0xff3c60;
-const MOVING_OBJECT_COLOR: u32 = 0xff00;
-const STATIC_OBJECT_COLOR: u32 = 0xff;
-const BACKGROUND_COLOR: u32 = 0x200020;
-
-// window stuff
-const WINDOW_WIDTH: usize = 260 * 4;
-const WINDOW_HEIGHT: usize = 260 * 3;
-const FPS: f64 = 144.0;
-
-// player stuff
-const PLAYER_WALKING_ACCEL: f64 = 2.4;
-const PLAYER_RUNNING_ACCEL: f64 = 3.6;
-const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
-
-// physics stuff
-const FRICTION_GROUND: f64 = 0.7;
-const FRICTION_AIR: f64 = 0.08;
-
-// stuff pertaining to keeping the camera focused on the player
-const PERCENT_SCREEN_PLAYER_IN_X: f64 = 18.0;
-const PERCENT_SCREEN_PLAYER_IN_Y: f64 = 17.5;
-const PLAYER_FOCUS_X_OFFSET: f64 = 0.0;
-const PLAYER_FOCUS_Y_OFFSET: f64 = -230.0;
-const CAMERA_MOVING_EASING_X: f64 = 1.0 / 750.0;
-const CAMERA_MOVING_EASING_Y: f64 = 1.0 / 1300.0;
-
-// jump stuff
-const JUMP_FORCE: f64 = 5.0;
-const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0006;
-
-// gravity
-const GRAVITY_MOVING_UP: f64 = -1.0 / 7.8;
-const GRAVITY_MOVING_DOWN: f64 = -1.0 / 4.5;
-const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
-
-// increasing this may increase performance on low fps
-// but will make player snap to the edges of platforms
-const COLLISION_DEPTH_BASE: f64 = 3.5;
-const COLLISION_MAX_LOOPS: u32 = 12;
-
-//
-// don't touch these constants
-//
-
-const MIN_X_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0
-    - PERCENT_SCREEN_PLAYER_IN_X / 200.0 * WINDOW_WIDTH as f64
-    + PLAYER_FOCUS_X_OFFSET;
-const MAX_X_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0
-    + PERCENT_SCREEN_PLAYER_IN_X / 200.0 * WINDOW_WIDTH as f64
-    + PLAYER_FOCUS_X_OFFSET;
-const MIN_Y_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0
-    - PERCENT_SCREEN_PLAYER_IN_Y / 200.0 * WINDOW_HEIGHT as f64
-    + PLAYER_FOCUS_Y_OFFSET;
-const MAX_Y_FROM_CAMERA: f64 = WINDOW_WIDTH as f64 / 2.0
-    + PERCENT_SCREEN_PLAYER_IN_Y / 200.0 * WINDOW_HEIGHT as f64
-    + PLAYER_FOCUS_Y_OFFSET;
-
-const FRAME_LIMIT_MILLIS: u64 = (1000.0 / FPS) as u64;
 
 //
 // main
@@ -184,8 +172,7 @@ fn main() {
     window.set_position(20, 20);
 
     // this will store the location of the bottom left corner of the rendring window
-    let mut camera_bottom_left: Vector2 =
-        Vector2::new(player.center.x - WINDOW_WIDTH as f64 / 2.0, 0.0);
+    let mut camera = Camera::new(player.center.x - WINDOW_WIDTH as f64 / 2.0, 0.0);
 
     // this will be where we write out pixel values
     let mut window_buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
@@ -431,105 +418,66 @@ fn main() {
         // keep the camera centered on the player
         //
 
-        if player.center.x - camera_bottom_left.x < MIN_X_FROM_CAMERA {
-            camera_bottom_left.x -= (player.center.x - camera_bottom_left.x - MIN_X_FROM_CAMERA)
-                * (player.center.x - camera_bottom_left.x - MIN_X_FROM_CAMERA)
+        if player.center.x - camera.bottom_left.x < MIN_X_FROM_CAMERA {
+            camera.bottom_left.x -= (player.center.x - camera.bottom_left.x - MIN_X_FROM_CAMERA)
+                * (player.center.x - camera.bottom_left.x - MIN_X_FROM_CAMERA)
                 * frame_time
                 * CAMERA_MOVING_EASING_X;
 
             // avoid over-correcting the camera
-            if player.center.x - camera_bottom_left.x > MIN_X_FROM_CAMERA {
-                camera_bottom_left.x = player.center.x - MIN_X_FROM_CAMERA;
+            if player.center.x - camera.bottom_left.x > MIN_X_FROM_CAMERA {
+                camera.bottom_left.x = player.center.x - MIN_X_FROM_CAMERA;
             }
-        } else if player.center.x - camera_bottom_left.x > MAX_X_FROM_CAMERA {
-            camera_bottom_left.x += (player.center.x - camera_bottom_left.x - MAX_X_FROM_CAMERA)
-                * (player.center.x - camera_bottom_left.x - MAX_X_FROM_CAMERA)
+        } else if player.center.x - camera.bottom_left.x > MAX_X_FROM_CAMERA {
+            camera.bottom_left.x += (player.center.x - camera.bottom_left.x - MAX_X_FROM_CAMERA)
+                * (player.center.x - camera.bottom_left.x - MAX_X_FROM_CAMERA)
                 * frame_time
                 * CAMERA_MOVING_EASING_X;
 
             // avoid over-correcting the camera
-            if player.center.x - camera_bottom_left.x < MAX_X_FROM_CAMERA {
-                camera_bottom_left.x = player.center.x - MAX_X_FROM_CAMERA;
+            if player.center.x - camera.bottom_left.x < MAX_X_FROM_CAMERA {
+                camera.bottom_left.x = player.center.x - MAX_X_FROM_CAMERA;
             }
         }
 
-        if player.center.y - camera_bottom_left.y < MIN_Y_FROM_CAMERA {
-            camera_bottom_left.y -= (player.center.y - camera_bottom_left.y - MIN_Y_FROM_CAMERA)
-                * (player.center.y - camera_bottom_left.y - MIN_Y_FROM_CAMERA)
+        if player.center.y - camera.bottom_left.y < MIN_Y_FROM_CAMERA {
+            camera.bottom_left.y -= (player.center.y - camera.bottom_left.y - MIN_Y_FROM_CAMERA)
+                * (player.center.y - camera.bottom_left.y - MIN_Y_FROM_CAMERA)
                 * frame_time
                 * CAMERA_MOVING_EASING_Y;
 
             // avoid over-correcting the camera
-            if player.center.y - camera_bottom_left.y > MIN_Y_FROM_CAMERA {
-                camera_bottom_left.y = player.center.y - MIN_Y_FROM_CAMERA;
+            if player.center.y - camera.bottom_left.y > MIN_Y_FROM_CAMERA {
+                camera.bottom_left.y = player.center.y - MIN_Y_FROM_CAMERA;
             }
-        } else if player.center.y - camera_bottom_left.y > MAX_Y_FROM_CAMERA {
-            camera_bottom_left.y += (player.center.y - camera_bottom_left.y - MAX_Y_FROM_CAMERA)
-                * (player.center.y - camera_bottom_left.y - MAX_Y_FROM_CAMERA)
+        } else if player.center.y - camera.bottom_left.y > MAX_Y_FROM_CAMERA {
+            camera.bottom_left.y += (player.center.y - camera.bottom_left.y - MAX_Y_FROM_CAMERA)
+                * (player.center.y - camera.bottom_left.y - MAX_Y_FROM_CAMERA)
                 * frame_time
                 * CAMERA_MOVING_EASING_Y;
 
             // avoid over-correcting the camera
-            if player.center.y - camera_bottom_left.y < MAX_Y_FROM_CAMERA {
-                camera_bottom_left.y = player.center.y - MAX_Y_FROM_CAMERA;
+            if player.center.y - camera.bottom_left.y < MAX_Y_FROM_CAMERA {
+                camera.bottom_left.y = player.center.y - MAX_Y_FROM_CAMERA;
             }
         }
 
         //
-        // graphics rendering
+        // graphics
         //
 
-        for x in 0..WINDOW_WIDTH {
-            for y in 0..WINDOW_HEIGHT {
-                // what the rgb value of the pixel will be
-                let rgb: u32;
-
-                // the coordinate in the world that this pixel is
-                let world_point = Vector2::new(
-                    camera_bottom_left.x + x as f64,
-                    camera_bottom_left.y + (WINDOW_HEIGHT - y) as f64,
-                );
-
-                let mut player_collision: bool = false;
-                let mut static_object_collision: bool = false;
-                let mut moving_object_collision: bool = false;
-
-                // determine collision with player
-                if bounds_contain_point(&world_point, &player_bounds) {
-                    player_collision = true;
-                }
-
-                // determine collision with static objects
-                for bounds in &static_object_bounds {
-                    if bounds_contain_point(&world_point, &bounds) {
-                        static_object_collision = true;
-                    }
-                }
-
-                // determine collision with moving objects
-                for moving_object in &moving_objects {
-                    if moving_object.contains_point(&world_point) {
-                        moving_object_collision = true;
-                    }
-                }
-
-                if player_collision
-                    && (window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift))
-                {
-                    rgb = SPRINTING_PLAYER_COLOR;
-                } else if player_collision {
-                    rgb = NORMAL_PLAYER_COLOR;
-                } else if moving_object_collision {
-                    rgb = MOVING_OBJECT_COLOR;
-                } else if static_object_collision {
-                    rgb = STATIC_OBJECT_COLOR;
-                } else {
-                    rgb = BACKGROUND_COLOR;
-                }
-
-                window_buffer[y * WINDOW_WIDTH + x] = rgb;
-            }
-        }
+        // put our rendered graphics into our buffer
+        camera.render_frame(
+            &render_game,
+            &player_bounds,
+            window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift),
+            &static_object_bounds,
+            &moving_objects
+                .iter()
+                .map(|object| object.bounds())
+                .collect(),
+            &mut window_buffer,
+        );
 
         // update our window with our pixel values
         window
