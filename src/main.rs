@@ -64,14 +64,6 @@ fn render_game(
     rgb
 }
 
-// this is used in main (f64 doesn't implement ord so we have to write this ourselves)
-fn f64_min(f1: f64, f2: f64) -> f64 {
-    match f1 < f2 {
-        true => f1,
-        false => f2,
-    }
-}
-
 //
 // main
 //
@@ -235,7 +227,7 @@ fn main() {
         }
 
         // configure horizontal acceleration (crude friction)
-        let current_friction = f64_min(
+        let current_friction = f64::min(
             player.velocity.x.abs(),
             match on_object {
                 true => FRICTION_GROUND * player.velocity.x.abs(),

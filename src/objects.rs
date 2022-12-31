@@ -143,6 +143,19 @@ pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> b
 // RigidBody code
 //
 
+// when handling rigidbody collisions, it is useful to know
+// how the rigidbody collided with objects
+// note: the name refer to the rigidbody's position
+// relative to the object it collides with
+#[derive(PartialEq, Eq)]
+pub enum CollisionStates {
+    OnBottom,
+    OnSide,
+    OnTop,
+
+    NoCollision,
+}
+
 #[derive(Clone)]
 pub struct RigidBody {
     pub center: Vector2,
@@ -157,6 +170,63 @@ impl RigidBody {
     // movement with no physics
     pub fn move_by(&mut self, movement: &Vector2) {
         movement.add_to(&mut self.center);
+    }
+
+    // handles the collisions with an array of rectobjects,
+    // puts the collision type into active_collision,
+    // and returns the index of the object the player was
+    // on, if any
+    pub fn handle_collisions<T: RectObject>(
+        &mut self,
+        objects: &[T],
+        active_collision: &mut CollisionStates,
+    ) -> Option<usize> {
+        let self_bounds = self.bounds();
+        let mut platform_on: Option<usize> = None; // this stores an index, not an object
+
+        for object in objects.iter().enumerate() {
+            // if the rigidbody doesn't collide with this object at all, move to the next object
+            if !self.collides_with(object.1) {
+                continue;
+            }
+
+            let obj_bounds = object.1.bounds();
+
+            // determine the collision depth of each side of the object
+            let right_depth: f64 = obj_bounds.1 - self_bounds.0;
+            let left_depth: f64 = self_bounds.1 - obj_bounds.0;
+            let top_depth: f64 = obj_bounds.3 - self_bounds.2;
+            let bottom_depth: f64 = self_bounds.3 - obj_bounds.2;
+
+            // creates an iterator of an enumeration of the depths
+            let depths = [left_depth, right_depth, bottom_depth, top_depth];
+            let iter = depths.iter().enumerate();
+
+            // and findes the entry with the minimum value (I know there won't be a
+            // None, as I just defined the iterator with 4 elements, so I can unwrap)
+            let min_index = iter
+                .reduce(|acc, item| match acc.1 < item.1 {
+                    true => acc,
+                    false => item,
+                })
+                .unwrap()
+                .0;
+
+            // finds what kind of collision it was
+            *active_collision = match min_index {
+                0 => CollisionStates::OnSide,
+                1 => CollisionStates::OnSide,
+                2 => CollisionStates::OnBottom,
+                3 => CollisionStates::OnTop,
+                _ => panic!("Catastrophic error while handling rigidbody collisions"),
+            };
+
+            if *active_collision == CollisionStates::OnTop {
+                platform_on = Some(object.0);
+            }
+        }
+
+        platform_on
     }
 }
 
