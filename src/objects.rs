@@ -202,8 +202,7 @@ impl RigidBody {
             let depths = [left_depth, right_depth, bottom_depth, top_depth];
             let iter = depths.iter().enumerate();
 
-            // and findes the entry with the minimum value (I know there won't be a
-            // None, as I just defined the iterator with 4 elements, so I can unwrap)
+            // and findes the entry with the minimum value (I can unwrap because there will 100% not be a None)
             let min_index = iter
                 .reduce(|acc, item| match acc.1 < item.1 {
                     true => acc,
@@ -211,6 +210,15 @@ impl RigidBody {
                 })
                 .unwrap()
                 .0;
+
+            // move the player ouside of the platform
+            match min_index {
+                0 => self.center.x = obj_bounds.0 - (self.width / 2.0),
+                1 => self.center.x = obj_bounds.1 + (self.width / 2.0),
+                2 => self.center.y = obj_bounds.2 - (self.height / 2.0),
+                3 => self.center.y = obj_bounds.3 + (self.height / 2.0),
+                _ => panic!("Error: closest to no side when handling rigidbody collisions")
+            }
 
             // finds what kind of collision it was
             *active_collision = match min_index {

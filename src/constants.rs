@@ -40,11 +40,6 @@ pub const GRAVITY_MOVING_UP: f64 = -1.0 / 7.8;
 pub const GRAVITY_MOVING_DOWN: f64 = -1.0 / 4.5;
 pub const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
 
-// increasing this may increase performance on low fps
-// but will make player snap to the edges of platforms
-pub const COLLISION_DEPTH_BASE: f64 = 3.5;
-pub const COLLISION_MAX_LOOPS: u32 = 12;
-
 //
 // don't touch these constants
 //
