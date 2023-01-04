@@ -8,7 +8,10 @@ extern crate minifb;
 use minifb::{Key, Window, WindowOptions};
 
 mod objects;
-use objects::{bounds_contain_point, MovingObject, RectObject, RigidBody, StaticObject, Vector2};
+use objects::{
+    bounds_contain_point, CollisionStates, MovingObject, RectObject, RigidBody, StaticObject,
+    Vector2,
+};
 
 mod camera;
 use camera::Camera;
@@ -188,6 +191,9 @@ fn main() {
     // these are used in physics so it's in scope outside of game loop
     let mut on_object: bool = false;
 
+    // this is where we'll store our active collision
+    let mut collision = CollisionStates::NoCollision;
+
     //
     // game loop
     //
@@ -215,7 +221,7 @@ fn main() {
                 true => PLAYER_RUNNING_ACCEL,
                 false => PLAYER_WALKING_ACCEL,
             };
-        if !on_object {
+        if !(on_object || collision == CollisionStates::OnTop) {
             current_accel_speed *= PLAYER_AIR_ACCELL_RATIO;
         }
 
@@ -229,7 +235,7 @@ fn main() {
         // configure horizontal acceleration (crude friction)
         let current_friction = f64::min(
             player.velocity.x.abs(),
-            match on_object {
+            match on_object || collision == CollisionStates::OnTop {
                 true => FRICTION_GROUND * player.velocity.x.abs(),
                 false => FRICTION_AIR * player.velocity.x.abs(),
             },
@@ -265,10 +271,11 @@ fn main() {
             moving_object.update(frame_time);
         }
 
-        // move into the platform we're stuck to if it exists
+        // move with the platform we're stuck to
         if let Some(mut stuck_obj) = stuck_platform {
             if player.collides_with_x(&stuck_obj) {
                 stuck_obj.update(frame_time);
+                player.center.x += stuck_obj.prev_move.x;
                 player.center.y =
                     stuck_obj.bounds().3 + player.height / 2.0 - COLLISION_DEPTH_BASE / 2.0;
             }
@@ -284,52 +291,13 @@ fn main() {
         let mut under_object: bool = false;
         let mut on_side: bool = false;
 
+        collision = CollisionStates::NoCollision;
+
         // cache player bounds for physics
         player_bounds = player.bounds();
 
-        for object in &moving_objects {
-            let bounds = object.bounds();
-
-            // this loop is here so that we can't phase through
-            // an object if we go fast enough, but still keep
-            // the area where the player is considered colliding
-            // on multiple sides of the object as small as possible
-            for j in 0..COLLISION_MAX_LOOPS {
-                if !player.collides_with(object) {
-                    break;
-                }
-
-                // if we collide with the object, decide the best
-                // way to move ourselves outside of the object
-                if player_bounds.0 >= bounds.1 - COLLISION_DEPTH_BASE * (1 << j) as f64
-                    && player.velocity.x <= 0.0
-                {
-                    player.center.x = bounds.1 + player.width / 2.0;
-
-                    on_side = true;
-                } else if player_bounds.1 <= bounds.0 + COLLISION_DEPTH_BASE * (1 << j) as f64
-                    && player.velocity.x >= 0.0
-                {
-                    player.center.x = bounds.0 - player.width / 2.0;
-
-                    on_side = true;
-                }
-                // if we're on top of a moving object, move with it
-                else if player_bounds.2 >= bounds.3 - COLLISION_DEPTH_BASE * (1 << j) as f64 {
-                    player.center.x += object.prev_move.x;
-
-                    // + 0.001 fixes bugs, doesn't affect movement because player will stick to the platform
-                    player.center.y = bounds.3 + player.height / 2.0 + 0.001;
-
-                    stuck_platform = Some(object.clone());
-
-                    on_object = true;
-                } else if player_bounds.3 <= bounds.2 + COLLISION_DEPTH_BASE * (1 << j) as f64 {
-                    player.center.y = bounds.2 - player.height / 2.0;
-
-                    under_object = true;
-                }
-            }
+        if let Some(index) = player.handle_collisions(&moving_objects, &mut collision) {
+            stuck_platform = Some(moving_objects[index].clone());
         }
 
         for i in 0..static_objects.len() {
@@ -388,11 +356,11 @@ fn main() {
             jump_buffer = JUMP_BUFFER_HUNDRETHSECS;
         }
 
-        if on_object && jump_buffer > 0.0 {
+        if (on_object || collision == CollisionStates::OnTop) && jump_buffer > 0.0 {
             player.velocity.y = JUMP_FORCE;
             jump_buffer = 0.0;
             stuck_platform = None; // if we jump, unstick ourselves
-        } else if on_object {
+        } else if on_object || collision == CollisionStates::OnTop {
             player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
         } else if under_object {
             player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
@@ -468,7 +436,7 @@ fn main() {
                 .iter()
                 .map(|object| object.bounds())
                 .collect(), // moving object bounds
-            &mut window_buffer,    // mutable refrence to our window bounds
+            &mut window_buffer,    // mutable refrence to our window buffer
         );
 
         // update our window with our pixel values
