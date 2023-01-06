@@ -16,6 +16,9 @@ use objects::{
 mod camera;
 use camera::Camera;
 
+mod map_loader;
+use map_loader::load_map;
+
 mod constants;
 use constants::*; // all my constants have very specific names, so I'm comfortable doing this
 
@@ -81,75 +84,10 @@ fn main() {
         static_friction: false,
     };
 
-    let static_objects = [
-        StaticObject {
-            center: Vector2::new(510.0, -50.0),
-            width: 1000.0,
-            height: 400.0,
-        },
-        StaticObject {
-            center: Vector2::new(430.0, 185.0),
-            width: 80.0,
-            height: 80.0,
-        },
-        StaticObject {
-            center: Vector2::new(360.0, 650.0),
-            width: 50.0,
-            height: 225.0,
-        },
-        StaticObject {
-            center: Vector2::new(410.0, 562.5),
-            width: 50.0,
-            height: 50.0,
-        },
-        StaticObject {
-            center: Vector2::new(406.5, 665.0),
-            width: 43.0,
-            height: 20.0,
-        },
-        StaticObject {
-            center: Vector2::new(-1000.0, 500.0),
-            width: 50.0,
-            height: 50.0,
-        },
-        StaticObject {
-            center: Vector2::new(-1125.0, 500.0),
-            width: 50.0,
-            height: 50.0,
-        },
-        StaticObject {
-            center: Vector2::new(-1025.0, 300.0),
-            width: 200.0,
-            height: 50.0,
-        },
-    ];
+    let mut static_objects: Vec<StaticObject> = vec![];
+    let mut moving_objects: Vec<MovingObject> = vec![];
 
-    let mut moving_objects = [
-        MovingObject::new(
-            Vector2::new(300.0, 245.0),
-            Vector2::new(265.0, 565.0),
-            80.0,
-            35.0,
-            150.0,
-            false,
-        ),
-        MovingObject::new(
-            Vector2::new(575.0, 390.0),
-            Vector2::new(735.0, 545.0),
-            100.0,
-            35.0,
-            150.0,
-            false,
-        ),
-        MovingObject::new(
-            Vector2::new(175.0, 770.0),
-            Vector2::new(-1000.0, 60.0),
-            200.0,
-            30.0,
-            360.0,
-            false,
-        ),
-    ];
+    load_map(&mut static_objects, &mut moving_objects);
 
     // our window :)
     let mut window = Window::new(
@@ -328,53 +266,8 @@ fn main() {
             player.center = Vector2::new(400.0, 300.0);
         }
 
-        //
-        // keep the camera centered on the player
-        //
-
-        if player.center.x - camera.bottom_left.x < MIN_X_FROM_CAMERA {
-            camera.bottom_left.x -= (player.center.x - camera.bottom_left.x - MIN_X_FROM_CAMERA)
-                * (player.center.x - camera.bottom_left.x - MIN_X_FROM_CAMERA)
-                * frame_time
-                * CAMERA_MOVING_EASING_X;
-
-            // avoid over-correcting the camera
-            if player.center.x - camera.bottom_left.x > MIN_X_FROM_CAMERA {
-                camera.bottom_left.x = player.center.x - MIN_X_FROM_CAMERA;
-            }
-        } else if player.center.x - camera.bottom_left.x > MAX_X_FROM_CAMERA {
-            camera.bottom_left.x += (player.center.x - camera.bottom_left.x - MAX_X_FROM_CAMERA)
-                * (player.center.x - camera.bottom_left.x - MAX_X_FROM_CAMERA)
-                * frame_time
-                * CAMERA_MOVING_EASING_X;
-
-            // avoid over-correcting the camera
-            if player.center.x - camera.bottom_left.x < MAX_X_FROM_CAMERA {
-                camera.bottom_left.x = player.center.x - MAX_X_FROM_CAMERA;
-            }
-        }
-
-        if player.center.y - camera.bottom_left.y < MIN_Y_FROM_CAMERA {
-            camera.bottom_left.y -= (player.center.y - camera.bottom_left.y - MIN_Y_FROM_CAMERA)
-                * (player.center.y - camera.bottom_left.y - MIN_Y_FROM_CAMERA)
-                * frame_time
-                * CAMERA_MOVING_EASING_Y;
-
-            // avoid over-correcting the camera
-            if player.center.y - camera.bottom_left.y > MIN_Y_FROM_CAMERA {
-                camera.bottom_left.y = player.center.y - MIN_Y_FROM_CAMERA;
-            }
-        } else if player.center.y - camera.bottom_left.y > MAX_Y_FROM_CAMERA {
-            camera.bottom_left.y += (player.center.y - camera.bottom_left.y - MAX_Y_FROM_CAMERA)
-                * (player.center.y - camera.bottom_left.y - MAX_Y_FROM_CAMERA)
-                * frame_time
-                * CAMERA_MOVING_EASING_Y;
-
-            // avoid over-correcting the camera
-            if player.center.y - camera.bottom_left.y < MAX_Y_FROM_CAMERA {
-                camera.bottom_left.y = player.center.y - MAX_Y_FROM_CAMERA;
-            }
-        }
+        // keep camera centered on player
+        camera.keep_centered_on_player(&mut player, frame_time);
 
         //
         // graphics

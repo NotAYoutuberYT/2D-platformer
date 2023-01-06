@@ -1,4 +1,10 @@
-use super::objects::Vector2;
+use super::{
+    constants::{
+        CAMERA_MOVING_EASING_X, CAMERA_MOVING_EASING_Y, MAX_X_FROM_CAMERA, MAX_Y_FROM_CAMERA,
+        MIN_X_FROM_CAMERA, MIN_Y_FROM_CAMERA,
+    },
+    objects::{RigidBody, Vector2},
+};
 
 pub struct Camera {
     pub bottom_left: Vector2,
@@ -18,6 +24,53 @@ impl Camera {
             self.bottom_left.x + point.x as f64,
             self.bottom_left.y + (super::constants::WINDOW_HEIGHT - point.y as usize) as f64,
         )
+    }
+
+    // keeps the camera centered on the player
+    pub fn keep_centered_on_player(&mut self, player: &mut RigidBody, frame_time: f64) {
+        if player.center.x - self.bottom_left.x < MIN_X_FROM_CAMERA {
+            self.bottom_left.x -= (player.center.x - self.bottom_left.x - MIN_X_FROM_CAMERA)
+                * (player.center.x - self.bottom_left.x - MIN_X_FROM_CAMERA)
+                * frame_time
+                * CAMERA_MOVING_EASING_X;
+
+            // avoid over-correcting the camera
+            if player.center.x - self.bottom_left.x > MIN_X_FROM_CAMERA {
+                self.bottom_left.x = player.center.x - MIN_X_FROM_CAMERA;
+            }
+        } else if player.center.x - self.bottom_left.x > MAX_X_FROM_CAMERA {
+            self.bottom_left.x += (player.center.x - self.bottom_left.x - MAX_X_FROM_CAMERA)
+                * (player.center.x - self.bottom_left.x - MAX_X_FROM_CAMERA)
+                * frame_time
+                * CAMERA_MOVING_EASING_X;
+
+            // avoid over-correcting the camera
+            if player.center.x - self.bottom_left.x < MAX_X_FROM_CAMERA {
+                self.bottom_left.x = player.center.x - MAX_X_FROM_CAMERA;
+            }
+        }
+
+        if player.center.y - self.bottom_left.y < MIN_Y_FROM_CAMERA {
+            self.bottom_left.y -= (player.center.y - self.bottom_left.y - MIN_Y_FROM_CAMERA)
+                * (player.center.y - self.bottom_left.y - MIN_Y_FROM_CAMERA)
+                * frame_time
+                * CAMERA_MOVING_EASING_Y;
+
+            // avoid over-correcting the camera
+            if player.center.y - self.bottom_left.y > MIN_Y_FROM_CAMERA {
+                self.bottom_left.y = player.center.y - MIN_Y_FROM_CAMERA;
+            }
+        } else if player.center.y - self.bottom_left.y > MAX_Y_FROM_CAMERA {
+            self.bottom_left.y += (player.center.y - self.bottom_left.y - MAX_Y_FROM_CAMERA)
+                * (player.center.y - self.bottom_left.y - MAX_Y_FROM_CAMERA)
+                * frame_time
+                * CAMERA_MOVING_EASING_Y;
+
+            // avoid over-correcting the camera
+            if player.center.y - self.bottom_left.y < MAX_Y_FROM_CAMERA {
+                self.bottom_left.y = player.center.y - MAX_Y_FROM_CAMERA;
+            }
+        }
     }
 
     // renders the camera, using the inputted function to convert
