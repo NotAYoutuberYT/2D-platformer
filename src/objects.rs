@@ -215,7 +215,7 @@ impl RigidBody {
             match min_index {
                 0 => self.center.x = obj_bounds.0 - (self.width / 2.0),
                 1 => self.center.x = obj_bounds.1 + (self.width / 2.0),
-                2 => self.center.y = obj_bounds.2 - (self.height / 2.0),
+                2 => self.center.y = obj_bounds.2 - (self.height / 2.0) - 1.0, // this stops the player from sticking to the object
                 3 => self.center.y = obj_bounds.3 + (self.height / 2.0),
                 _ => panic!("Error: closest to no side when handling rigidbody collisions")
             }

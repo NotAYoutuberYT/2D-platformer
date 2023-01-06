@@ -4,7 +4,6 @@
 
 // colors :)
 pub const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
-pub const SPRINTING_PLAYER_COLOR: u32 = 0xff3c60;
 pub const MOVING_OBJECT_COLOR: u32 = 0xff00;
 pub const STATIC_OBJECT_COLOR: u32 = 0xff;
 pub const BACKGROUND_COLOR: u32 = 0x200020;
@@ -16,7 +15,6 @@ pub const FPS: f64 = 144.0;
 
 // player stuff
 pub const PLAYER_WALKING_ACCEL: f64 = 2.4;
-pub const PLAYER_RUNNING_ACCEL: f64 = 3.6;
 pub const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
 
 // physics stuff
@@ -38,7 +36,7 @@ pub const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0006;
 // gravity
 pub const GRAVITY_MOVING_UP: f64 = -1.0 / 7.8;
 pub const GRAVITY_MOVING_DOWN: f64 = -1.0 / 4.5;
-pub const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.5;
+pub const VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT: f64 = -1.0 / 2.25;
 
 //
 // don't touch these constants

@@ -84,12 +84,10 @@ impl Camera {
         func: &dyn Fn(
             Vector2,
             &(f64, f64, f64, f64),
-            bool,
             &[(f64, f64, f64, f64)],
             &Vec<(f64, f64, f64, f64)>,
         ) -> u32,
         player_bounds: &(f64, f64, f64, f64),
-        is_sprinting: bool,
         static_object_bounds: &[(f64, f64, f64, f64)],
         moving_object_bounds: &Vec<(f64, f64, f64, f64)>,
         buffer: &mut Vec<u32>,
@@ -102,7 +100,6 @@ impl Camera {
                 buffer[y * super::WINDOW_WIDTH + x] = func(
                     world_point,
                     player_bounds,
-                    is_sprinting,
                     static_object_bounds,
                     moving_object_bounds,
                 );

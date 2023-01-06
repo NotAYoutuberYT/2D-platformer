@@ -26,7 +26,6 @@ use constants::*; // all my constants have very specific names, so I'm comfortab
 fn render_game(
     world_point: Vector2,
     player_bounds: &(f64, f64, f64, f64),
-    is_sprinting: bool,
     static_object_bounds: &[(f64, f64, f64, f64)],
     moving_object_bounds: &Vec<(f64, f64, f64, f64)>,
 ) -> u32 {
@@ -55,9 +54,7 @@ fn render_game(
         }
     });
 
-    if player_collision && is_sprinting {
-        rgb = SPRINTING_PLAYER_COLOR;
-    } else if player_collision {
+    if player_collision {
         rgb = NORMAL_PLAYER_COLOR;
     } else if moving_object_collision {
         rgb = MOVING_OBJECT_COLOR;
@@ -76,7 +73,7 @@ fn render_game(
 
 fn main() {
     let mut player = RigidBody {
-        center: Vector2::new(400.0, 300.0),
+        center: Vector2::new(0.0, 0.0),
         width: 20.0,
         height: 40.0,
 
@@ -142,29 +139,25 @@ fn main() {
         //
 
         // this is where the player's acceleration is stored
-        let mut player_acceleration: Vector2 = Vector2::new(0.0, 0.0);
+        let mut player_acceleration_vector: Vector2 = Vector2::new(0.0, 0.0);
 
         // configure vertical acceleration (gravity)
-        player_acceleration.y = match player.velocity.y <= 0.0 {
+        player_acceleration_vector.y = match player.velocity.y <= 0.0 {
             false => GRAVITY_MOVING_UP,
             true => GRAVITY_MOVING_DOWN,
         };
 
         // configure horizontal acceleration (movement)
-        let mut current_accel_speed =
-            match window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift) {
-                true => PLAYER_RUNNING_ACCEL,
-                false => PLAYER_WALKING_ACCEL,
-            };
-        if !(collision == CollisionStates::OnTop) {
-            current_accel_speed *= PLAYER_AIR_ACCELL_RATIO;
+        let mut current_x_accell = PLAYER_WALKING_ACCEL;
+        if collision != CollisionStates::OnTop {
+            current_x_accell *= PLAYER_AIR_ACCELL_RATIO;
         }
 
         if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
-            player_acceleration.x += current_accel_speed;
+            player_acceleration_vector.x += current_x_accell;
         }
         if window.is_key_down(Key::A) || window.is_key_down(Key::Left) {
-            player_acceleration.x -= current_accel_speed;
+            player_acceleration_vector.x -= current_x_accell;
         }
 
         // configure horizontal acceleration (crude friction)
@@ -177,25 +170,21 @@ fn main() {
         );
 
         if player.velocity.x < 0.0 {
-            player_acceleration.x += current_friction;
+            player_acceleration_vector.x += current_friction;
         } else {
-            player_acceleration.x -= current_friction;
-        }
-
-        if window.is_key_pressed(Key::Q, minifb::KeyRepeat::No) {
-            println!("current_friction: {current_friction:?}, current_accel_speed: {current_accel_speed:?}, vel x: {:?}, acc x: {:?}", player.velocity.x, player_acceleration.x);
+            player_acceleration_vector.x -= current_friction;
         }
 
         // move the player (we integrate the player's movement instead of approximating
         // to make the physics continuous and therefore framerate-independent)
         let movement_vector: Vector2 = Vector2::add(
-            &Vector2::multiply(&player_acceleration, frame_time * frame_time / 2.0),
+            &Vector2::multiply(&player_acceleration_vector, frame_time * frame_time / 2.0),
             &Vector2::multiply(&player.velocity, frame_time),
         );
         player.move_by(&movement_vector);
 
         // update velocity
-        Vector2::multiply(&player_acceleration, frame_time).add_to(&mut player.velocity);
+        Vector2::multiply(&player_acceleration_vector, frame_time).add_to(&mut player.velocity);
 
         //
         // moving platform stuff
@@ -262,8 +251,8 @@ fn main() {
         player_bounds = player.bounds();
 
         // respawn (temporary for prototype)
-        if player.center.y < -20.0 {
-            player.center = Vector2::new(400.0, 300.0);
+        if player.center.y < -120.0 {
+            player.center = Vector2::new(0.0, 30.0);
         }
 
         // keep camera centered on player
@@ -277,7 +266,6 @@ fn main() {
         camera.render_frame(
             &render_game,   // render function
             &player_bounds, // the player's bounds
-            window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift), // if the player is sprinting
             &static_object_bounds, // static object bounds
             &moving_objects
                 .iter()
