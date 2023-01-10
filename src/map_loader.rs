@@ -18,14 +18,29 @@ pub fn load_map(static_objects: &mut Vec<StaticObject>, moving_objects: &mut Vec
             width: 200.0,
             height: 90.0,
         },
+        StaticObject {
+            center: Vector2::new(-150.0, 240.0),
+            width: 110.0,
+            height: 110.0,
+        },
     ];
 
-    *moving_objects = vec![MovingObject::new(
-        Vector2::new(365.0, 75.0),
-        Vector2::new(365.0, 200.0),
-        120.0,
-        30.0,
-        120.0,
-        false,
-    )];
+    *moving_objects = vec![
+        MovingObject::new(
+            Vector2::new(365.0, 100.0),
+            Vector2::new(365.0, 220.0),
+            120.0,
+            30.0,
+            140.0,
+            false,
+        ),
+        MovingObject::new(
+            Vector2::new(-30.0, 360.0),
+            Vector2::new(300.0, 400.0),
+            100.0,
+            30.0,
+            200.0,
+            false,
+        ),
+    ];
 }
