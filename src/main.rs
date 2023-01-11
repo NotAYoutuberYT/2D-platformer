@@ -200,8 +200,8 @@ fn main() {
             if player.collides_with_x(&stuck_obj) {
                 stuck_obj.update(frame_time);
                 player.center.x += stuck_obj.prev_move.x;
-                player.center.y =
-                    stuck_obj.bounds().3 + player.height / 2.0 - 0.01; // move the player slightly into the platform
+                player.center.y = stuck_obj.bounds().3 + player.height / 2.0 - 0.01;
+                // move the player slightly into the platform
             }
         }
 
@@ -238,7 +238,14 @@ fn main() {
         }
 
         if collision == CollisionStates::OnTop && jump_buffer > 0.0 {
-            player.velocity.y = JUMP_FORCE;
+            // adding some of the platform's velocity to the player's
+            // allows for satisfying jumps
+            let mut additional_y_velocity: f64 = 0.0;
+            if let Some(obj) = stuck_platform {
+                additional_y_velocity = obj.prev_move.y * MOVING_PLATFORM_SPEED_JUMP_MODIFIER;
+            }
+
+            player.velocity.y = JUMP_FORCE + additional_y_velocity;
             jump_buffer = 0.0;
             stuck_platform = None; // if we jump, unstick ourselves
         } else if collision == CollisionStates::OnTop {
@@ -264,8 +271,8 @@ fn main() {
 
         // put our rendered graphics into our buffer
         camera.render_frame(
-            &render_game,   // render function
-            &player_bounds, // the player's bounds
+            &render_game,          // render function
+            &player_bounds,        // the player's bounds
             &static_object_bounds, // static object bounds
             &moving_objects
                 .iter()

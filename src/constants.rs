@@ -17,6 +17,11 @@ pub const FPS: f64 = 144.0;
 pub const PLAYER_WALKING_ACCEL: f64 = 2.4;
 pub const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
 
+// jump stuff
+pub const JUMP_FORCE: f64 = 5.0;
+pub const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0006;
+pub const MOVING_PLATFORM_SPEED_JUMP_MODIFIER: f64 = 1.55;
+
 // physics stuff
 pub const FRICTION_GROUND: f64 = 0.7;
 pub const FRICTION_AIR: f64 = 0.08;
@@ -28,10 +33,6 @@ pub const PLAYER_FOCUS_X_OFFSET: f64 = 0.0;
 pub const PLAYER_FOCUS_Y_OFFSET: f64 = -230.0;
 pub const CAMERA_MOVING_EASING_X: f64 = 1.0 / 750.0;
 pub const CAMERA_MOVING_EASING_Y: f64 = 1.0 / 1300.0;
-
-// jump stuff
-pub const JUMP_FORCE: f64 = 5.0;
-pub const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0006;
 
 // gravity
 pub const GRAVITY_MOVING_UP: f64 = -1.0 / 7.8;
