@@ -9,15 +9,14 @@ use minifb::{Key, Window, WindowOptions};
 
 mod objects;
 use objects::{
-    bounds_contain_point, CollisionStates, MovingObject, RectObject, RigidBody, StaticObject,
-    Vector2,
+    bounds_contain_point, CollisionStates, MovingObject, RectObject, RigidBody, Vector2,
 };
 
 mod camera;
 use camera::Camera;
 
 mod map_loader;
-use map_loader::load_map;
+use map_loader::Map;
 
 mod constants;
 use constants::*; // all my constants have very specific names, so I'm comfortable doing this
@@ -81,10 +80,9 @@ fn main() {
         static_friction: false,
     };
 
-    let mut static_objects: Vec<StaticObject> = vec![];
-    let mut moving_objects: Vec<MovingObject> = vec![];
+    let mut map: Map = Map::new();
 
-    load_map(&mut static_objects, &mut moving_objects);
+    map.load_map(1);
 
     // our window :)
     let mut window = Window::new(
@@ -114,7 +112,8 @@ fn main() {
     let mut jump_buffer: f64 = 0.0;
 
     // cache object bounds
-    let static_object_bounds: Vec<(f64, f64, f64, f64)> = static_objects
+    let static_object_bounds: Vec<(f64, f64, f64, f64)> = map
+        .static_objects
         .iter()
         .map(|object| object.bounds())
         .collect();
@@ -191,7 +190,7 @@ fn main() {
         //
 
         // update the position of moving platforms
-        for moving_object in &mut moving_objects {
+        for moving_object in &mut map.moving_objects {
             moving_object.update(frame_time);
         }
 
@@ -213,11 +212,11 @@ fn main() {
 
         collision = CollisionStates::NoCollision;
 
-        if let Some(index) = player.handle_collisions(&moving_objects, &mut collision) {
-            stuck_platform = Some(moving_objects[index].clone());
+        if let Some(index) = player.handle_collisions(&map.moving_objects, &mut collision) {
+            stuck_platform = Some(map.moving_objects[index].clone());
         }
 
-        player.handle_collisions(&static_objects, &mut collision);
+        player.handle_collisions(&map.static_objects, &mut collision);
 
         //
         // final physics before rendering graphics
@@ -274,7 +273,7 @@ fn main() {
             &render_game,          // render function
             &player_bounds,        // the player's bounds
             &static_object_bounds, // static object bounds
-            &moving_objects
+            &map.moving_objects
                 .iter()
                 .map(|object| object.bounds())
                 .collect(), // moving object bounds
