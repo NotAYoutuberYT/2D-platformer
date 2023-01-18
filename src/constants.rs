@@ -20,7 +20,7 @@ pub const PLAYER_AIR_ACCELL_RATIO: f64 = 0.1;
 // jump stuff
 pub const JUMP_FORCE: f64 = 5.0;
 pub const JUMP_BUFFER_HUNDRETHSECS: f64 = 0.0006;
-pub const MOVING_PLATFORM_SPEED_JUMP_MODIFIER: f64 = 1.55;
+pub const MOVING_PLATFORM_SPEED_JUMP_MODIFIER: f64 = 0.5;
 
 // physics stuff
 pub const FRICTION_GROUND: f64 = 0.7;

@@ -52,19 +52,21 @@ fn sandwich(f1: f64, f2: f64, f3: f64) -> bool {
 // RectObject trait code
 //
 
-// a rectangle object that has two
-// flat and two vertical lines
+/// A basic rectangular object.
+/// Two of its sides must be vertical,
+/// and the other two must be horizontal.
 pub trait RectObject {
-    // returns the object's 4 points
+    /// returns the object's 4 points in clockwise
+    /// order, starting at the top left
     fn points(&self) -> Vec<Vector2>;
 
-    // returns a vector containing the leftmost
-    // x value, rightmost x value, lowest y
-    // value, and uppermost y value respectively
+    /// returns a vector containing the leftmost
+    /// x value, rightmost x value, lowest y
+    /// value, and uppermost y value respectively
     fn bounds(&self) -> (f64, f64, f64, f64);
 
-    // given a Vector2, determines if that vector lies within
-    // the object (being on an edge counts as being inside)
+    /// determines if a Vector2 lies within the object
+    /// (being on an edge doesn't count as being inside)
     fn contains_point(&self, point: &Vector2) -> bool {
         let bounds: (f64, f64, f64, f64) = self.bounds();
 
@@ -81,8 +83,9 @@ pub trait RectObject {
         inside
     }
 
-    // detects if the there is collion on
-    // the horizontal axis
+    /// Returns if it is possible to make
+    /// a vertical line that passes through
+    /// self and a passed in RectObject
     fn collides_with_y(&self, other: &dyn RectObject) -> bool {
         let self_bounds: (f64, f64, f64, f64) = self.bounds();
         let other_bounds: (f64, f64, f64, f64) = other.bounds();
@@ -103,8 +106,9 @@ pub trait RectObject {
         collides
     }
 
-    // detects if the there is collion on
-    // the vertical axis
+    /// Returns if it is possible to make
+    /// a horizontal line that passes through
+    /// self and a passed in RectObject
     fn collides_with_x(&self, other: &dyn RectObject) -> bool {
         let self_bounds: (f64, f64, f64, f64) = self.bounds();
         let other_bounds: (f64, f64, f64, f64) = other.bounds();
@@ -125,15 +129,14 @@ pub trait RectObject {
         collides
     }
 
-    // detects collision with the other object
-    // (colliding edges counts as collision)
+    /// detects collision with the other object
+    // /(colliding edges counts as collision)
     fn collides_with(&self, other: &dyn RectObject) -> bool {
         self.collides_with_x(other) && self.collides_with_y(other)
     }
 }
 
-// given a Vector2, determines if that vector lies within
-// the object (being on an edge counts as being inside)
+/// determines if a Vector2 lies within an object's bounds
 pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> bool {
     // if we detect the point too far to the left, too far the right, too far down, or too high up, return false
     !(point.x < bounds.0 || bounds.1 < point.x || point.y < bounds.2 || bounds.3 < point.y)
@@ -172,10 +175,12 @@ impl RigidBody {
         movement.add_to(&mut self.center);
     }
 
-    // handles the collisions with an array of rectobjects,
-    // puts the collision type into active_collision,
-    // and returns the index of the object the player was
-    // on, if any
+    /**
+    handles the collisions with an array of rectobjects,
+    puts the collision type into active_collision,
+    and returns the index of the object the player was
+    on, if any
+    */
     pub fn handle_collisions<T: RectObject>(
         &mut self,
         objects: &[T],
@@ -202,7 +207,7 @@ impl RigidBody {
             let depths = [left_depth, right_depth, bottom_depth, top_depth];
             let iter = depths.iter().enumerate();
 
-            // and findes the entry with the minimum value (I can unwrap because there will 100% not be a None)
+            // and findes the entry with the minimum value (I can unwrap because there is a 0% chance of finding a None)
             let min_index = iter
                 .reduce(|acc, item| match acc.1 < item.1 {
                     true => acc,
@@ -217,7 +222,7 @@ impl RigidBody {
                 1 => self.center.x = obj_bounds.1 + (self.width / 2.0),
                 2 => self.center.y = obj_bounds.2 - (self.height / 2.0) - 1.0, // this stops the player from sticking to the object
                 3 => self.center.y = obj_bounds.3 + (self.height / 2.0),
-                _ => panic!("Error: closest to no side when handling rigidbody collisions")
+                _ => panic!("Error: closest to no side when handling rigidbody collisions"),
             }
 
             // finds what kind of collision it was
@@ -287,14 +292,8 @@ impl RectObject for RigidBody {
 // MovingObject code
 //
 
-#[derive(PartialEq, Eq, Clone)]
-pub enum MovingObjectDirections {
-    Leaving,
-    Returning,
-    Standstil,
-}
-
 #[derive(Clone)]
+/// a RectObject that moves between to fixed points
 pub struct MovingObject {
     pub start_pos: Vector2,
     pub end_pos: Vector2,
@@ -303,15 +302,16 @@ pub struct MovingObject {
     pub move_time: f64,
     pub fallthrough: bool,
 
-    amount_traveled: f64, // amount of the path traveled
-    pub direction: MovingObjectDirections,
+    /// describes how far the object has traveled (0-1 is going to end_pos, 1-2 is returning to start_pos)
+    amount_traveled: f64,
     pub center: Vector2,
 
-    pub prev_move: Vector2, // this represents the motion on the object's last update
+    /// the motion on the object's last update
+    pub prev_move: Vector2,
 }
 
 impl MovingObject {
-    // creates a new leaving moving platform at start point
+    /// creates a new leaving moving platform at start point
     pub fn new(
         start_pos: Vector2,
         end_pos: Vector2,
@@ -331,27 +331,26 @@ impl MovingObject {
             fallthrough: fallthrough,
 
             amount_traveled: 0.0,
-            direction: MovingObjectDirections::Leaving,
             center: center,
 
             prev_move: Vector2::new(0.0, 0.0),
         }
     }
 
-    // moves the object across its path by time (0 is start, 1 is end, 2 is returned)
-    // will automatically change direction
-    // if ammount is zero, will set direction to standstil
-    // will panic on negative ammount values
+    /**
+     * moves the object across its path and stores the new position
+     * will automatically change direction
+     * will panic on negative ammount values
+     * returns the movement the object took
+     */
     pub fn update(&mut self, ammount: f64) {
         let pre_center: Vector2 = Vector2::clone(&self.center);
 
-        // check if the object stopped moving, and do a little
-        // error handling while we're at it
+        // trying to move a moving platform backwards isn't unrecoverable
+        // in itself, but it almost certainly means that something
+        // somewhere else has gone completely wrong
         if ammount < 0.0 {
-            panic!("Error: attempted to move moving platform negative ammount");
-        } else if ammount == 0.0 {
-            self.direction = MovingObjectDirections::Standstil;
-            return;
+            panic!("attempted to move moving platform negative ammount");
         }
 
         self.amount_traveled += ammount / self.move_time;
@@ -359,16 +358,9 @@ impl MovingObject {
         // this prevents overflow
         self.amount_traveled %= 2.0;
 
-        // sets moving direction to be correct
-        if self.amount_traveled <= 1.0 {
-            self.direction = MovingObjectDirections::Leaving;
-        } else {
-            self.direction = MovingObjectDirections::Returning;
-        }
-
         // configures the lerp ammount
         let lerp_ammount: f64;
-        if self.direction == MovingObjectDirections::Leaving {
+        if self.amount_traveled < 1.0 {
             lerp_ammount = self.amount_traveled;
         } else {
             lerp_ammount = 2.0 - self.amount_traveled;
