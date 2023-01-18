@@ -5,6 +5,8 @@ of code "minifb = "0.23" into the cargo.toml file of a cargo-initilized project.
 crate is what allows me to open a window and write rgb values to each pixel of the window. All
 code for representing objects, rendring those objects, and performing physics is written by Bryce Holland. */
 extern crate minifb;
+use std::io::Write;
+
 use minifb::{Key, Window, WindowOptions};
 
 mod objects;
@@ -82,7 +84,14 @@ fn main() {
 
     let mut map: Map = Map::new();
 
-    map.load_map(1);
+    // loads map user wants to play
+    std::print!("Input level you want to play: ");
+    std::io::stdout().flush().expect("failed to flush stdout");
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .expect("failed to read stdin");
+    map.load_map(input.trim().parse().expect("failed to parse input as u32"));
 
     // our window :)
     let mut window = Window::new(
