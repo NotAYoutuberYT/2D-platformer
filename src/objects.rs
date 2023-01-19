@@ -166,10 +166,19 @@ pub struct RigidBody {
     pub height: f64,
 
     pub velocity: Vector2,
-    pub static_friction: bool,
 }
 
 impl RigidBody {
+    /// creates a new rigidbody
+    pub fn new() -> RigidBody {
+        RigidBody {
+            center: Vector2::new(0.0, 0.0),
+            width: 10.0,
+            height: 10.0,
+            velocity: Vector2::new(0.0, 0.0),
+        }
+    }
+
     // movement with no physics
     pub fn move_by(&mut self, movement: &Vector2) {
         movement.add_to(&mut self.center);
@@ -293,7 +302,7 @@ impl RectObject for RigidBody {
 //
 
 #[derive(Clone)]
-/// a RectObject that moves between to fixed points
+/// a RectObject that moves between two fixed points
 pub struct MovingObject {
     pub start_pos: Vector2,
     pub end_pos: Vector2,

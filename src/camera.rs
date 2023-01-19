@@ -11,14 +11,16 @@ pub struct Camera {
 }
 
 impl Camera {
+    /// creates a new camera with the x and why coordinates
+    /// of the bottom left corner of the rendering area
     pub fn new(x: f64, y: f64) -> Camera {
         Camera {
             bottom_left: Vector2::new(x, y),
         }
     }
 
-    // returns the actual point in the game
-    // that world the pixel point represents
+    /// returns the actual point in the game
+    /// that world the pixel point represents
     pub fn get_game_position(&self, point: Vector2) -> Vector2 {
         Vector2::new(
             self.bottom_left.x + point.x as f64,
@@ -26,7 +28,7 @@ impl Camera {
         )
     }
 
-    // keeps the camera centered on the player
+    /// keeps the camera centered on a player
     pub fn keep_centered_on_player(&mut self, player: &mut RigidBody, frame_time: f64) {
         if player.center.x - self.bottom_left.x < MIN_X_FROM_CAMERA {
             self.bottom_left.x -= (player.center.x - self.bottom_left.x - MIN_X_FROM_CAMERA)

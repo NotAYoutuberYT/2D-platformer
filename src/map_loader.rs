@@ -1,8 +1,11 @@
+use crate::objects::RigidBody;
+
 use super::objects::{MovingObject, StaticObject, Vector2};
 
 pub struct Map {
     pub static_objects: Vec<StaticObject>,
     pub moving_objects: Vec<MovingObject>,
+    pub default_player: RigidBody,
 }
 
 impl Map {
@@ -10,6 +13,7 @@ impl Map {
         return Map {
             static_objects: Vec::new(),
             moving_objects: Vec::new(),
+            default_player: RigidBody::new(),
         };
     }
 
@@ -58,15 +62,29 @@ impl Map {
                         false,
                     ),
                 ];
+
+                self.default_player = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: 20.0,
+                    height: 40.0,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
             }
             2 => {
-                self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(100.0, -500.0),
-                        width: 400.0,
-                        height: 1000.0
-                    }
-                ]
+                self.static_objects = vec![StaticObject {
+                    center: Vector2::new(100.0, -500.0),
+                    width: 400.0,
+                    height: 1000.0,
+                }];
+
+                self.default_player = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: 20.0,
+                    height: 40.0,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
             }
             _ => panic!("Map.load_map given improper level number"),
         }

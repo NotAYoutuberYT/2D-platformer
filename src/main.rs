@@ -11,7 +11,7 @@ use minifb::{Key, Window, WindowOptions};
 
 mod objects;
 use objects::{
-    bounds_contain_point, CollisionStates, MovingObject, RectObject, RigidBody, Vector2,
+    bounds_contain_point, CollisionStates, MovingObject, RectObject, Vector2,
 };
 
 mod camera;
@@ -73,15 +73,6 @@ fn render_game(
 //
 
 fn main() {
-    let mut player = RigidBody {
-        center: Vector2::new(0.0, 0.0),
-        width: 20.0,
-        height: 40.0,
-
-        velocity: Vector2::new(0.0, 0.0),
-        static_friction: false,
-    };
-
     let mut map: Map = Map::new();
 
     // loads map user wants to play
@@ -92,6 +83,8 @@ fn main() {
         .read_line(&mut input)
         .expect("failed to read stdin");
     map.load_map(input.trim().parse().expect("failed to parse input as u32"));
+
+    let mut player = map.default_player.clone();
 
     // our window :)
     let mut window = Window::new(
@@ -265,9 +258,9 @@ fn main() {
         // recache bounds for graphics
         player_bounds = player.bounds();
 
-        // respawn (temporary for prototype)
+        // reapawn
         if player.center.y < -120.0 {
-            player.center = Vector2::new(0.0, 30.0);
+            player = map.default_player.clone();
         }
 
         // keep camera centered on player
