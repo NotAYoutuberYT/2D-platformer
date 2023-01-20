@@ -1,6 +1,4 @@
-use crate::objects::RigidBody;
-
-use super::objects::{MovingObject, StaticObject, Vector2};
+use super::objects::{MovingObject, RigidBody, StaticObject, Vector2};
 
 pub struct Map {
     pub static_objects: Vec<StaticObject>,
@@ -15,7 +13,7 @@ impl Map {
             static_objects: Vec::new(),
             moving_objects: Vec::new(),
             default_player: RigidBody::new(),
-            lowest_point: 0.0
+            lowest_point: 0.0,
         };
     }
 

@@ -1,4 +1,4 @@
-use crate::{
+use super::{
     camera::Camera,
     constants::{
         BACKGROUND_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN, GRAVITY_MOVING_UP,
