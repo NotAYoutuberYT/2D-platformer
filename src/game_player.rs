@@ -61,7 +61,7 @@ fn render_game(
 /**
   plays a game with a supplied map and window
 * function will end when the player beats the level or presses escape
-* returns if the user pressed control + esc to indicate terminating the entire program
+* returns if the user tried to terminate the entire program
 */
 pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
     // this will be where we write out pixel values
@@ -288,5 +288,5 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
     // returns if only esc was pressed to indicate returning to menu
     // or if left ctrl was pressed to indicate closing the entire game
-    window.is_key_down(Key::Escape) && window.is_key_down(Key::LeftCtrl)
+    (window.is_key_down(Key::Escape) && window.is_key_down(Key::LeftCtrl)) || !window.is_open()
 }
