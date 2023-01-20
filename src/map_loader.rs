@@ -6,6 +6,7 @@ pub struct Map {
     pub static_objects: Vec<StaticObject>,
     pub moving_objects: Vec<MovingObject>,
     pub default_player: RigidBody,
+    pub lowest_point: f64,
 }
 
 impl Map {
@@ -14,6 +15,7 @@ impl Map {
             static_objects: Vec::new(),
             moving_objects: Vec::new(),
             default_player: RigidBody::new(),
+            lowest_point: 0.0
         };
     }
 
@@ -70,6 +72,8 @@ impl Map {
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
+
+                self.lowest_point = -120.0;
             }
             2 => {
                 self.static_objects = vec![StaticObject {
@@ -85,6 +89,8 @@ impl Map {
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
+
+                self.lowest_point = -120.0;
             }
             _ => panic!("Map.load_map given improper level number"),
         }
