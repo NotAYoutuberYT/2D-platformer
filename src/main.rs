@@ -35,7 +35,7 @@ fn main() {
 
     // our window :)
     let mut window = Window::new(
-        "Platformer - CTRL + ESC to exit",
+        "Platformer - ESC to exit",
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
         WindowOptions::default(),

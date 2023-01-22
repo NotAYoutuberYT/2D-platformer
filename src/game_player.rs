@@ -2,16 +2,16 @@ use super::{
     camera::Camera,
     constants::{
         BACKGROUND_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN, GRAVITY_MOVING_UP,
-        JUMP_BUFFER_HUNDRETHSECS, JUMP_FORCE, MOVING_OBJECT_COLOR,
-        MOVING_PLATFORM_SPEED_JUMP_MODIFIER, NORMAL_PLAYER_COLOR, PLAYER_AIR_ACCELL_RATIO,
-        PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR, VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT,
-        WINDOW_HEIGHT, WINDOW_WIDTH,
+        JUMP_BUFFER_HUNDRETH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR, NORMAL_PLAYER_COLOR,
+        PLAYER_AIR_ACCELL_RATIO, PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR,
+        STUCK_PLATFORM_VELOCITY_ADD_MODIFIER, VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, WINDOW_HEIGHT,
+        WINDOW_WIDTH,
     },
     map_loader::Map,
-    objects::{bounds_contain_point, CollisionStates, MovingObject, RectObject, Vector2},
+    objects::{bounds_contain_point, CollisionTypes, MovingObject, RectObject, Vector2},
 };
 
-use minifb::{Key, Window};
+use minifb::{Key, KeyRepeat, Window};
 
 // this is the function we use to render the game
 fn render_game(
@@ -68,7 +68,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
     let mut window_buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
 
     // create our player
-    let mut player = map.default_player.clone();
+    let mut player = map.player_respawn.clone();
 
     // create our camera
     let mut camera = Camera::new(player.center.x - WINDOW_WIDTH as f64 / 2.0, 0.0);
@@ -88,13 +88,16 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
     let mut player_bounds: (f64, f64, f64, f64);
 
     // this is where we'll store the player's active collision
-    let mut collision = CollisionStates::NoCollision;
+    let mut collision: Vec<CollisionTypes> = Vec::new();
 
     // when a player is on a moving platform, we "stick" them to
     // the platform to stop them from bouncing on it as it moves
     let mut stuck_platform: Option<MovingObject> = None;
 
-    while window.is_open() && !window.is_key_pressed(Key::Escape, minifb::KeyRepeat::No) {
+    while window.is_open()
+        && (!window.is_key_pressed(Key::Key1, KeyRepeat::No)
+            && !window.is_key_pressed(Key::Escape, KeyRepeat::No))
+    {
         // used to measure the frame time
         let frame_start = std::time::Instant::now();
 
@@ -113,7 +116,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // configure horizontal acceleration (movement)
         let mut current_x_accell = PLAYER_WALKING_ACCEL;
-        if collision != CollisionStates::OnTop {
+        if !collision.contains(&CollisionTypes::OnTop) {
             current_x_accell *= PLAYER_AIR_ACCELL_RATIO;
         }
 
@@ -127,7 +130,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         // configure horizontal acceleration
         let current_friction = f64::min(
             player.velocity.x.abs(),
-            match collision == CollisionStates::OnTop {
+            match collision.contains(&CollisionTypes::OnTop) {
                 true => FRICTION_GROUND * player.velocity.x.abs(),
                 false => FRICTION_AIR * player.velocity.x.abs(),
             },
@@ -185,7 +188,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         //
 
         // reset collision
-        collision = CollisionStates::NoCollision;
+        collision = Vec::new();
 
         // handle collisions with moving objects, and if we're stuck to
         // an object, update the stuck_platform variable
@@ -205,7 +208,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // reset the player's velocity if they're
         // on the side of an object
-        if collision == CollisionStates::OnSide {
+        if collision.contains(&CollisionTypes::OnSide) {
             player.velocity.x = 0.0;
         }
 
@@ -215,27 +218,34 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             || window.is_key_pressed(Key::Up, minifb::KeyRepeat::No);
 
         if jump_pressed {
-            jump_buffer = JUMP_BUFFER_HUNDRETHSECS;
+            jump_buffer = JUMP_BUFFER_HUNDRETH_SECONDS;
         }
 
         // handle jumping
-        if collision == CollisionStates::OnTop && jump_buffer > 0.0 {
-            // if the player is stuck to a platform, add that object's vertical
-            // velocity multiplied by a constant to the player's vertical velocity
-            let mut additional_y_velocity: f64 = 0.0;
+        if collision.contains(&CollisionTypes::OnTop) && jump_buffer > 0.0 {
+            // if the player is stuck to a platform, add that object's
+            // velocity multiplied by a constant to the player's velocity
+            let mut additional_velocity = Vector2::new(0.0, 0.0);
             if let Some(obj) = stuck_platform {
-                additional_y_velocity = obj.prev_move.y * MOVING_PLATFORM_SPEED_JUMP_MODIFIER;
+                additional_velocity =
+                    Vector2::multiply(&obj.prev_move, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER);
             }
 
             // set the correct vertical velocity
-            // and reset the jump buffer
-            player.velocity.y = JUMP_FORCE + additional_y_velocity;
+            player.velocity.y = JUMP_FORCE;
+            additional_velocity.add_to(&mut player.velocity);
+
+            // reset the jump buffer
             jump_buffer = 0.0;
-            stuck_platform = None; // if we jump, unstick ourselves
+
+            // unstick the player from the platform
+            stuck_platform = None;
         }
         // if the player is on the top of or the bottom of an
         // object, reset the player's vertical velocity
-        else if collision == CollisionStates::OnTop || collision == CollisionStates::OnBottom {
+        else if collision.contains(&CollisionTypes::OnTop)
+            || collision.contains(&CollisionTypes::OnBottom)
+        {
             player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
         }
 
@@ -244,7 +254,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // reapawn if the player is too low
         if player.center.y < map.lowest_point {
-            player = map.default_player.clone();
+            player = map.player_respawn.clone();
         }
 
         // keep camera centered on player
@@ -286,7 +296,6 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             panic!("Error updating window: {}", error);
         });
 
-    // returns if only esc was pressed to indicate returning to menu
-    // or if left ctrl was pressed to indicate closing the entire game
-    (window.is_key_down(Key::Escape) && window.is_key_down(Key::LeftCtrl)) || !window.is_open()
+    // returns if the entire program was set to be terminated
+    !window.is_open() || window.is_key_down(Key::Escape)
 }
