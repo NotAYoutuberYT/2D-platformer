@@ -14,7 +14,7 @@ use minifb::{Window, WindowOptions};
 mod objects;
 
 mod camera;
-use constants::{WINDOW_HEIGHT, WINDOW_WIDTH, FRAME_LIMIT_MILLIS};
+use constants::{FRAME_LIMIT_MILLIS, WINDOW_HEIGHT, WINDOW_WIDTH};
 
 mod map_loader;
 use map_loader::Map;
@@ -35,7 +35,7 @@ fn main() {
 
     // our window :)
     let mut window = Window::new(
-        "Platformer - CTRL + ESC to exit",
+        "Platformer - ESC to exit",
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
         WindowOptions::default(),

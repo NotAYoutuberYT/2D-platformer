@@ -151,12 +151,10 @@ pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> b
 // note: the name refer to the rigidbody's position
 // relative to the object it collides with
 #[derive(PartialEq, Eq)]
-pub enum CollisionStates {
+pub enum CollisionTypes {
     OnBottom,
     OnSide,
     OnTop,
-
-    NoCollision,
 }
 
 #[derive(Clone)]
@@ -193,7 +191,7 @@ impl RigidBody {
     pub fn handle_collisions<T: RectObject>(
         &mut self,
         objects: &[T],
-        active_collision: &mut CollisionStates,
+        active_collision: &mut Vec<CollisionTypes>,
     ) -> Option<usize> {
         let self_bounds = self.bounds();
         let mut platform_on: Option<usize> = None; // this stores an index, not an object
@@ -235,16 +233,19 @@ impl RigidBody {
             }
 
             // finds what kind of collision it was
-            *active_collision = match min_index {
-                0 => CollisionStates::OnSide,
-                1 => CollisionStates::OnSide,
-                2 => CollisionStates::OnBottom,
-                3 => CollisionStates::OnTop,
-                _ => panic!("Catastrophic error while handling rigidbody collisions"),
-            };
+            active_collision.push(match min_index {
+                0 => CollisionTypes::OnSide,
+                1 => CollisionTypes::OnSide,
+                2 => CollisionTypes::OnBottom,
+                3 => CollisionTypes::OnTop,
+                _ => panic!("Error: closest to no side when handling rigidbody collisions"),
+            });
 
-            if *active_collision == CollisionStates::OnTop {
-                platform_on = Some(object.0);
+            // update the platform that the player is on if they're on top of one
+            if let Some(collision_state) = active_collision.last() {
+                if collision_state == &CollisionTypes::OnTop {
+                    platform_on = Some(object.0);
+                }
             }
         }
 
