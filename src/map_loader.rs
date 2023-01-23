@@ -1,12 +1,16 @@
-use super::objects::{MovingObject, RigidBody, StaticObject, Vector2};
+use super::objects::{Circle, MovingObject, RigidBody, StaticObject, Vector2};
 
 pub struct Map {
     pub static_objects: Vec<StaticObject>,
     pub moving_objects: Vec<MovingObject>,
+    pub circles: Vec<Circle>,
 
     /// the rigidbody the player will
     /// be set to when it respawns
     pub player_respawn: RigidBody,
+
+    // the player
+    pub player: RigidBody,
 
     /// if the player goes below this point, they rewspawn
     pub lowest_point: f64,
@@ -17,7 +21,11 @@ impl Map {
         return Map {
             static_objects: Vec::new(),
             moving_objects: Vec::new(),
+            circles: Vec::new(),
+
             player_respawn: RigidBody::new(),
+            player: RigidBody::new(),
+
             lowest_point: 0.0,
         };
     }
@@ -51,6 +59,42 @@ impl Map {
             }
 
             2 => {
+                self.static_objects = vec![
+                    StaticObject {
+                        center: Vector2::new(200.0, -500.0),
+                        width: 400.0,
+                        height: 1000.0,
+                    },
+                    StaticObject {
+                        center: Vector2::new(200.0, 370.0),
+                        width: 400.0,
+                        height: 100.0,
+                    },
+                ];
+
+                self.moving_objects = vec![MovingObject::new(
+                    Vector2::new(550.0, -50.0),
+                    Vector2::new(550.0, 300.0),
+                    100.0,
+                    30.0,
+                    150.0,
+                    false,
+                )];
+
+                self.circles = vec![Circle::new(&Vector2::new(540.0, 310.0), 25.0)];
+
+                self.player_respawn = RigidBody {
+                    center: Vector2::new(100.0, 0.0),
+                    width: 20.0,
+                    height: 40.0,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
+
+                self.lowest_point = -150.0;
+            }
+
+            3 => {
                 self.static_objects = vec![
                     StaticObject {
                         center: Vector2::new(100.0, -500.0),
@@ -106,5 +150,7 @@ impl Map {
 
             _ => panic!("Map.load_map given improper level number"),
         }
+
+        self.player = self.player_respawn.clone();
     }
 }

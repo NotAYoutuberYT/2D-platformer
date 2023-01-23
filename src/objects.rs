@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::vec;
+
 // basic vector2 struct
 #[derive(Clone)]
 pub struct Vector2 {
@@ -483,5 +485,32 @@ impl RectObject for StaticObject {
         points.3 = self.center.y + half_height;
 
         points
+    }
+}
+
+//
+// Circle code
+//
+
+// a circle with no collisions used to indicate sutff
+pub struct Circle {
+    center: Vector2,
+    radius_squared: f64,
+}
+
+impl Circle {
+    pub fn new(center: &Vector2, radius: f64) -> Circle {
+        Circle {
+            center: center.clone(),
+            radius_squared: radius,
+        }
+    }
+
+    pub fn contains_point(&self, point: &Vector2) -> bool {
+        let vector_from_center = Vector2::new(point.x - self.center.x, point.y - self.center.y);
+        let distance_from_center_squared = vector_from_center.x * vector_from_center.x
+            + vector_from_center.y * vector_from_center.y;
+
+        distance_from_center_squared < self.radius_squared
     }
 }

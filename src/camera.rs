@@ -1,3 +1,5 @@
+use crate::map_loader::Map;
+
 use super::{
     constants::{
         CAMERA_MOVING_EASING_X, CAMERA_MOVING_EASING_Y, MAX_X_FROM_CAMERA_BOTTOM_LEFT,
@@ -88,15 +90,11 @@ impl Camera {
     // the static object bounds, the moving object bounds
     pub fn render_frame(
         &self,
-        func: &dyn Fn(
-            Vector2,
-            &(f64, f64, f64, f64),
-            &[(f64, f64, f64, f64)],
-            &Vec<(f64, f64, f64, f64)>,
+        render: &dyn Fn(
+            Vector2, // the point in space to render
+            &Map,    // the map to render
         ) -> u32,
-        player_bounds: &(f64, f64, f64, f64),
-        static_object_bounds: &[(f64, f64, f64, f64)],
-        moving_object_bounds: &Vec<(f64, f64, f64, f64)>,
+        map: &Map,
         buffer: &mut Vec<u32>,
     ) {
         for x in 0..super::WINDOW_WIDTH {
@@ -104,12 +102,7 @@ impl Camera {
                 // the coordinate in the world that this pixel is
                 let world_point = self.get_game_position(Vector2::new(x as f64, y as f64));
 
-                buffer[y * super::WINDOW_WIDTH + x] = func(
-                    world_point,
-                    player_bounds,
-                    static_object_bounds,
-                    moving_object_bounds,
-                );
+                buffer[y * super::WINDOW_WIDTH + x] = render(world_point, &map);
             }
         }
     }
