@@ -1,5 +1,3 @@
-use crate::constants::CIRCLE_COLOR;
-
 use super::{
     camera::Camera,
     constants::{
@@ -22,7 +20,6 @@ fn render_game(world_point: Vector2, map: &Map) -> u32 {
     let mut player_collision: bool = false;
     let mut static_object_collision: bool = false;
     let mut moving_object_collision: bool = false;
-    let mut circle_collision: bool = false;
 
     // determine collision with player
     if map.player.contains_point(&world_point) {
@@ -43,9 +40,10 @@ fn render_game(world_point: Vector2, map: &Map) -> u32 {
         }
     });
 
+    let mut circle_color: Option<u32> = None;
     map.circles.iter().for_each(|circle| {
         if circle.contains_point(&world_point) {
-            circle_collision = true;
+            circle_color = Some(circle.color);
         }
     });
 
@@ -55,8 +53,8 @@ fn render_game(world_point: Vector2, map: &Map) -> u32 {
         rgb = MOVING_OBJECT_COLOR;
     } else if static_object_collision {
         rgb = STATIC_OBJECT_COLOR;
-    } else if circle_collision {
-        rgb = CIRCLE_COLOR;
+    } else if let Some(color) = circle_color {
+        rgb = color;
     } else {
         rgb = BACKGROUND_COLOR;
     }

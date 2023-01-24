@@ -312,7 +312,6 @@ pub struct MovingObject {
     pub width: f64,
     pub height: f64,
     pub move_time: f64,
-    pub fallthrough: bool,
 
     /// describes how far the object has traveled (0-1 is going to end_pos, 1-2 is returning to start_pos)
     amount_traveled: f64,
@@ -330,7 +329,6 @@ impl MovingObject {
         width: f64,
         height: f64,
         move_time: f64,
-        fallthrough: bool,
     ) -> MovingObject {
         let center: Vector2 = start_pos.clone();
 
@@ -340,7 +338,6 @@ impl MovingObject {
             width: width,
             height: height,
             move_time: move_time,
-            fallthrough: fallthrough,
 
             amount_traveled: 0.0,
             center: center,
@@ -496,13 +493,15 @@ impl RectObject for StaticObject {
 pub struct Circle {
     center: Vector2,
     radius_squared: f64,
+    pub color: u32,
 }
 
 impl Circle {
-    pub fn new(center: &Vector2, radius: f64) -> Circle {
+    pub fn new(center: &Vector2, radius: f64, color: u32) -> Circle {
         Circle {
             center: center.clone(),
             radius_squared: radius,
+            color: color,
         }
     }
 

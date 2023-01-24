@@ -1,3 +1,5 @@
+use crate::constants::MOVING_PLATFORM_INDICATOR_COLOR;
+
 use super::objects::{Circle, MovingObject, RigidBody, StaticObject, Vector2};
 
 pub struct Map {
@@ -32,18 +34,23 @@ impl Map {
 
     /// loads the map with the level provided
     pub fn load_map(&mut self, level: u32) {
+        *self = Map::new();
+
+
+        // determine the level and put the
+        // correct map in the this object
         match level {
             1 => {
                 self.static_objects = vec![
                     StaticObject {
-                        center: Vector2::new(200.0, -500.0),
-                        width: 700.0,
+                        center: Vector2::new(180.0, -520.0),
+                        width: 440.0,
                         height: 1000.0,
                     },
                     StaticObject {
-                        center: Vector2::new(600.0, -500.0),
+                        center: Vector2::new(650.0, -520.0),
                         width: 300.0,
-                        height: 1180.0,
+                        height: 1100.0,
                     },
                 ];
 
@@ -66,7 +73,7 @@ impl Map {
                         height: 1000.0,
                     },
                     StaticObject {
-                        center: Vector2::new(200.0, 370.0),
+                        center: Vector2::new(200.0, 320.0),
                         width: 400.0,
                         height: 100.0,
                     },
@@ -78,10 +85,7 @@ impl Map {
                     100.0,
                     30.0,
                     150.0,
-                    false,
                 )];
-
-                self.circles = vec![Circle::new(&Vector2::new(540.0, 310.0), 25.0)];
 
                 self.player_respawn = RigidBody {
                     center: Vector2::new(100.0, 0.0),
@@ -125,7 +129,6 @@ impl Map {
                         120.0,
                         30.0,
                         140.0,
-                        false,
                     ),
                     MovingObject::new(
                         Vector2::new(-30.0, 420.0),
@@ -133,7 +136,6 @@ impl Map {
                         100.0,
                         30.0,
                         200.0,
-                        false,
                     ),
                 ];
 
@@ -151,6 +153,22 @@ impl Map {
             _ => panic!("Map.load_map given improper level number"),
         }
 
+        // set the starting player to the default player respawn
         self.player = self.player_respawn.clone();
+
+        // put a moving platform end indicator
+        // at the end of allmoving objects
+        self.moving_objects.iter().for_each(|object| {
+            self.circles.push(Circle::new(
+                &object.start_pos,
+                25.0,
+                MOVING_PLATFORM_INDICATOR_COLOR,
+            ));
+            self.circles.push(Circle::new(
+                &object.end_pos,
+                25.0,
+                MOVING_PLATFORM_INDICATOR_COLOR,
+            ));
+        })
     }
 }

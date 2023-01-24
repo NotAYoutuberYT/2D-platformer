@@ -6,7 +6,7 @@
 pub const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
 pub const MOVING_OBJECT_COLOR: u32 = 0xff00;
 pub const STATIC_OBJECT_COLOR: u32 = 0xff;
-pub const CIRCLE_COLOR: u32 = 0xeeeeee;
+pub const MOVING_PLATFORM_INDICATOR_COLOR: u32 = 0xeeeeee;
 pub const BACKGROUND_COLOR: u32 = 0x200020;
 
 // window stuff
