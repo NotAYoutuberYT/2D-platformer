@@ -36,7 +36,6 @@ impl Map {
     pub fn load_map(&mut self, level: u32) {
         *self = Map::new();
 
-
         // determine the level and put the
         // correct map in the this object
         match level {
@@ -62,10 +61,43 @@ impl Map {
                     velocity: Vector2::new(0.0, 0.0),
                 };
 
-                self.lowest_point = -120.0;
+                self.lowest_point = -200.0;
             }
 
             2 => {
+                self.static_objects = vec![
+                    StaticObject {
+                        center: Vector2::new(180.0, -520.0),
+                        width: 440.0,
+                        height: 1000.0,
+                    },
+                    StaticObject {
+                        center: Vector2::new(1125.0, -500.0),
+                        width: 440.0,
+                        height: 1000.0,
+                    },
+                ];
+
+                self.moving_objects = vec![MovingObject::new(
+                    Vector2::new(500.0, -32.5),
+                    Vector2::new(740.0, 20.0),
+                    100.0,
+                    26.0,
+                    170.0,
+                )];
+
+                self.player_respawn = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: 20.0,
+                    height: 40.0,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
+
+                self.lowest_point = -160.0;
+            }
+
+            3 => {
                 self.static_objects = vec![
                     StaticObject {
                         center: Vector2::new(200.0, -500.0),
@@ -73,9 +105,14 @@ impl Map {
                         height: 1000.0,
                     },
                     StaticObject {
-                        center: Vector2::new(200.0, 320.0),
+                        center: Vector2::new(200.0, 340.0),
                         width: 400.0,
                         height: 100.0,
+                    },
+                    StaticObject {
+                        center: Vector2::new(-190.0, 420.0),
+                        width: 125.0,
+                        height: 55.0,
                     },
                 ];
 
@@ -98,7 +135,27 @@ impl Map {
                 self.lowest_point = -150.0;
             }
 
-            3 => {
+            4 => {
+                self.static_objects = vec![
+                    StaticObject {
+                        center: Vector2::new(180.0, -520.0),
+                        width: 440.0,
+                        height: 1000.0,
+                    },
+                ];
+
+                self.player_respawn = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: 20.0,
+                    height: 40.0,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
+
+                self.lowest_point = -200.0;
+            }
+
+            5 => {
                 self.static_objects = vec![
                     StaticObject {
                         center: Vector2::new(100.0, -500.0),

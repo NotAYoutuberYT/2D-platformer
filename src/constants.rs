@@ -17,7 +17,7 @@ pub const FPS: f64 = 144.0;
 // player stuff
 pub const PLAYER_WALKING_ACCEL: f64 = 2.4;
 pub const PLAYER_AIR_ACCELL_RATIO: f64 = 0.05;
-pub const STUCK_PLATFORM_VELOCITY_ADD_MODIFIER: f64 = 0.8;
+pub const STUCK_PLATFORM_VELOCITY_ADD_MODIFIER: f64 = 0.6;
 
 // jump stuff
 pub const JUMP_FORCE: f64 = 5.0;
