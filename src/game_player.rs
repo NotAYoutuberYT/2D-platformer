@@ -109,7 +109,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // configure horizontal acceleration (movement)
         let mut current_x_accell = PLAYER_WALKING_ACCEL;
-        if !collision.contains(&CollisionTypes::OnTop) {
+        if !collision.contains(&CollisionTypes::Top) {
             current_x_accell *= PLAYER_AIR_ACCELL_RATIO;
         }
 
@@ -123,7 +123,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         // configure horizontal acceleration
         let current_friction = f64::min(
             map.player.velocity.x.abs(),
-            match collision.contains(&CollisionTypes::OnTop) {
+            match collision.contains(&CollisionTypes::Top) {
                 true => FRICTION_GROUND * map.player.velocity.x.abs(),
                 false => FRICTION_AIR * map.player.velocity.x.abs(),
             },
@@ -205,7 +205,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // reset the player's velocity if they're
         // on the side of an object
-        if collision.contains(&CollisionTypes::OnSide) {
+        if collision.contains(&CollisionTypes::Side) {
             map.player.velocity.x = 0.0;
         }
 
@@ -219,7 +219,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         }
 
         // handle jumping
-        if collision.contains(&CollisionTypes::OnTop) && jump_buffer > 0.0 {
+        if collision.contains(&CollisionTypes::Top) && jump_buffer > 0.0 {
             // if the player is stuck to a platform, add that object's
             // velocity multiplied by a constant to the player's velocity
             let mut additional_velocity = Vector2::new(0.0, 0.0);
@@ -240,8 +240,8 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         }
         // if the player is on the top of or the bottom of an
         // object, reset the player's vertical velocity
-        else if collision.contains(&CollisionTypes::OnTop)
-            || collision.contains(&CollisionTypes::OnBottom)
+        else if collision.contains(&CollisionTypes::Top)
+            || collision.contains(&CollisionTypes::Bottom)
         {
             map.player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
         }
@@ -259,7 +259,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         //
 
         // render our graphics
-        camera.render_frame(&render_game, &map, &mut window_buffer);
+        camera.render_frame(&render_game, map, &mut window_buffer);
 
         // update our window with our pixel values
         window

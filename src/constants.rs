@@ -9,6 +9,9 @@ pub const STATIC_OBJECT_COLOR: u32 = 0xff;
 pub const MOVING_PLATFORM_INDICATOR_COLOR: u32 = 0xeeeeee;
 pub const BACKGROUND_COLOR: u32 = 0x200020;
 
+// sizes
+pub const MOVING_PLATFORM_INDICATOR_RADIUS: f64 = 5.0;
+
 // window stuff
 pub const WINDOW_WIDTH: usize = 260 * 4;
 pub const WINDOW_HEIGHT: usize = 260 * 3;

@@ -11,7 +11,7 @@ pub struct Vector2 {
 
 impl Vector2 {
     pub fn new(x: f64, y: f64) -> Vector2 {
-        Vector2 { x: x, y: y }
+        Vector2 { x, y }
     }
 
     // makes set equal to passed vector
@@ -33,14 +33,14 @@ impl Vector2 {
     // t should be between 0 and one
     pub fn lerp(vector1: &Vector2, vector2: &Vector2, t: f64) -> Vector2 {
         Vector2::add(
-            &Vector2::multiply(&vector1, 1.0 - t),
-            &Vector2::multiply(&vector2, t),
+            &Vector2::multiply(vector1, 1.0 - t),
+            &Vector2::multiply(vector2, t),
         )
     }
 
     // adds self to other
     pub fn add_to(&self, other: &mut Vector2) {
-        other.set(&Vector2::add(&self, &other));
+        other.set(&Vector2::add(self, other));
     }
 }
 
@@ -72,17 +72,12 @@ pub trait RectObject {
     fn contains_point(&self, point: &Vector2) -> bool {
         let bounds: (f64, f64, f64, f64) = self.bounds();
 
-        let mut inside: bool = true;
-
         // if we detect the point outside of the
         // box at any time, set inside to false
-        if point.x < bounds.0 || bounds.1 < point.x {
-            inside = false;
-        } else if point.y < bounds.2 || bounds.3 < point.y {
-            inside = false;
-        }
+        let outside_x = point.x < bounds.0 || bounds.1 < point.x;
+        let outside_y = point.y < bounds.2 || bounds.3 < point.y;
 
-        inside
+        !(outside_x || outside_y)
     }
 
     /// Returns if it is possible to make
@@ -92,20 +87,11 @@ pub trait RectObject {
         let self_bounds: (f64, f64, f64, f64) = self.bounds();
         let other_bounds: (f64, f64, f64, f64) = other.bounds();
 
-        let mut collides: bool = false;
+        let self_left_in_other = sandwich(other_bounds.0, self_bounds.0, other_bounds.1);
+        let self_right_in_other = sandwich(other_bounds.0, self_bounds.1, other_bounds.1);
+        let self_contain_other = self_bounds.0 <= other_bounds.0 && other_bounds.1 < self_bounds.1;
 
-        if sandwich(other_bounds.0, self_bounds.0, other_bounds.1) {
-            // is self's leftmost side in other?
-            collides = true;
-        } else if sandwich(other_bounds.0, self_bounds.1, other_bounds.1) {
-            // is self's rightmost side in other?
-            collides = true;
-        } else if self_bounds.0 <= other_bounds.0 && other_bounds.1 < self_bounds.1 {
-            // do we completely contatain other on x axis?
-            collides = true;
-        }
-
-        collides
+        self_left_in_other || self_right_in_other || self_contain_other
     }
 
     /// Returns if it is possible to make
@@ -115,20 +101,11 @@ pub trait RectObject {
         let self_bounds: (f64, f64, f64, f64) = self.bounds();
         let other_bounds: (f64, f64, f64, f64) = other.bounds();
 
-        let mut collides: bool = false;
+        let self_bottom_in_other = sandwich(other_bounds.2, self_bounds.2, other_bounds.3);
+        let self_top_in_other = sandwich(other_bounds.2, self_bounds.3, other_bounds.3);
+        let self_contain_other = self_bounds.2 <= other_bounds.2 && other_bounds.3 < self_bounds.3;
 
-        if sandwich(other_bounds.2, self_bounds.2, other_bounds.3) {
-            // is self's bottom side in other?
-            collides = true;
-        } else if sandwich(other_bounds.2, self_bounds.3, other_bounds.3) {
-            // is self's top side in other?
-            collides = true;
-        } else if self_bounds.2 <= other_bounds.2 && other_bounds.3 < self_bounds.3 {
-            // do we completely contatain other on y axis?
-            collides = true;
-        }
-
-        collides
+        self_bottom_in_other || self_top_in_other || self_contain_other
     }
 
     /// detects collision with the other object
@@ -154,9 +131,9 @@ pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> b
 // relative to the object it collides with
 #[derive(PartialEq, Eq)]
 pub enum CollisionTypes {
-    OnBottom,
-    OnSide,
-    OnTop,
+    Bottom,
+    Side,
+    Top,
 }
 
 #[derive(Clone)]
@@ -236,16 +213,16 @@ impl RigidBody {
 
             // finds what kind of collision it was
             active_collision.push(match min_index {
-                0 => CollisionTypes::OnSide,
-                1 => CollisionTypes::OnSide,
-                2 => CollisionTypes::OnBottom,
-                3 => CollisionTypes::OnTop,
+                0 => CollisionTypes::Side,
+                1 => CollisionTypes::Side,
+                2 => CollisionTypes::Bottom,
+                3 => CollisionTypes::Top,
                 _ => panic!("Error: closest to no side when handling rigidbody collisions"),
             });
 
             // update the platform that the player is on if they're on top of one
             if let Some(collision_state) = active_collision.last() {
-                if collision_state == &CollisionTypes::OnTop {
+                if collision_state == &CollisionTypes::Top {
                     platform_on = Some(object.0);
                 }
             }
@@ -333,14 +310,14 @@ impl MovingObject {
         let center: Vector2 = start_pos.clone();
 
         MovingObject {
-            start_pos: start_pos,
-            end_pos: end_pos,
-            width: width,
-            height: height,
-            move_time: move_time,
+            start_pos,
+            end_pos,
+            width,
+            height,
+            move_time,
 
             amount_traveled: 0.0,
-            center: center,
+            center,
 
             prev_move: Vector2::new(0.0, 0.0),
         }
@@ -368,12 +345,10 @@ impl MovingObject {
         self.amount_traveled %= 2.0;
 
         // configures the lerp ammount
-        let lerp_ammount: f64;
-        if self.amount_traveled < 1.0 {
-            lerp_ammount = self.amount_traveled;
-        } else {
-            lerp_ammount = 2.0 - self.amount_traveled;
-        }
+        let lerp_ammount: f64 = match self.amount_traveled < 1.0 {
+            true => self.amount_traveled,
+            false => 2.0 - self.amount_traveled,
+        };
 
         // lerp between the two points to determine the center of the moving platform
         self.center
@@ -500,8 +475,8 @@ impl Circle {
     pub fn new(center: &Vector2, radius: f64, color: u32) -> Circle {
         Circle {
             center: center.clone(),
-            radius_squared: radius,
-            color: color,
+            radius_squared: radius * radius,
+            color,
         }
     }
 
