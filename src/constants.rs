@@ -7,6 +7,7 @@ pub const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
 pub const MOVING_OBJECT_COLOR: u32 = 0xff00;
 pub const STATIC_OBJECT_COLOR: u32 = 0xff;
 pub const MOVING_PLATFORM_INDICATOR_COLOR: u32 = 0xeeeeee;
+pub const GOAL_COLOR: u32 = 0xf6f70b;
 pub const BACKGROUND_COLOR: u32 = 0x200020;
 
 // sizes

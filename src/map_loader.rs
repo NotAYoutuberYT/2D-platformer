@@ -1,11 +1,17 @@
-use crate::constants::{MOVING_PLATFORM_INDICATOR_COLOR, MOVING_PLATFORM_INDICATOR_RADIUS};
+use crate::constants::{
+    GOAL_COLOR, MOVING_PLATFORM_INDICATOR_COLOR, MOVING_PLATFORM_INDICATOR_RADIUS,
+};
 
 use super::objects::{Circle, MovingObject, RigidBody, StaticObject, Vector2};
 
 pub struct Map {
     pub static_objects: Vec<StaticObject>,
     pub moving_objects: Vec<MovingObject>,
-    pub circles: Vec<Circle>,
+
+    // circles
+    pub moving_object_indicators: Vec<Circle>,
+    pub checkpoints: Vec<Circle>,
+    pub goal: Circle,
 
     /// the rigidbody the player will
     /// be set to when it respawns
@@ -23,7 +29,10 @@ impl Map {
         Map {
             static_objects: Vec::new(),
             moving_objects: Vec::new(),
-            circles: Vec::new(),
+
+            moving_object_indicators: Vec::new(),
+            checkpoints: Vec::new(),
+            goal: Circle::new(&Vector2::new(0.0, 0.0), 0.0, 0),
 
             player_respawn: RigidBody::new(),
             player: RigidBody::new(),
@@ -61,6 +70,8 @@ impl Map {
                     velocity: Vector2::new(0.0, 0.0),
                 };
 
+                self.goal = Circle::new(&Vector2::new(700.0, 100.0), 20.0, GOAL_COLOR);
+
                 self.lowest_point = -200.0;
             }
 
@@ -92,7 +103,9 @@ impl Map {
                     height: 40.0,
 
                     velocity: Vector2::new(0.0, 0.0),
-                };
+                }; 
+
+                self.goal = Circle::new(&Vector2::new(1250.0, 100.0), 20.0, GOAL_COLOR);
 
                 self.lowest_point = -160.0;
             }
@@ -136,6 +149,8 @@ impl Map {
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
+
+                self.goal = Circle::new(&Vector2::new(-480.0, 530.0), 20.0, GOAL_COLOR);
 
                 self.lowest_point = -150.0;
             }
@@ -194,6 +209,8 @@ impl Map {
                     velocity: Vector2::new(0.0, 0.0),
                 };
 
+                self.goal = Circle::new(&Vector2::new(440.0, 765.0), 20.0, GOAL_COLOR);
+
                 self.lowest_point = -250.0;
             }
 
@@ -231,7 +248,7 @@ impl Map {
                     ),
                     MovingObject::new(
                         Vector2::new(-30.0, 420.0),
-                        Vector2::new(300.0, 460.0),
+                        Vector2::new(300.0, 470.0),
                         100.0,
                         30.0,
                         200.0,
@@ -246,6 +263,8 @@ impl Map {
                     velocity: Vector2::new(0.0, 0.0),
                 };
 
+                self.goal = Circle::new(&Vector2::new(300.0, 520.0), 20.0, GOAL_COLOR);
+
                 self.lowest_point = -120.0;
             }
 
@@ -258,12 +277,12 @@ impl Map {
         // put a moving platform end indicator
         // at the end of allmoving objects
         self.moving_objects.iter().for_each(|object| {
-            self.circles.push(Circle::new(
+            self.moving_object_indicators.push(Circle::new(
                 &object.start_pos,
                 MOVING_PLATFORM_INDICATOR_RADIUS,
                 MOVING_PLATFORM_INDICATOR_COLOR,
             ));
-            self.circles.push(Circle::new(
+            self.moving_object_indicators.push(Circle::new(
                 &object.end_pos,
                 MOVING_PLATFORM_INDICATOR_RADIUS,
                 MOVING_PLATFORM_INDICATOR_COLOR,

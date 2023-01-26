@@ -40,12 +40,16 @@ fn render_game(world_point: Vector2, map: &Map) -> u32 {
         }
     });
 
+    // determine if there should be any rendering of circles
     let mut circle_color: Option<u32> = None;
-    map.circles.iter().for_each(|circle| {
+    map.moving_object_indicators.iter().for_each(|circle| {
         if circle.contains_point(&world_point) {
             circle_color = Some(circle.color);
         }
     });
+    if map.goal.contains_point(&world_point) {
+        circle_color = Some(map.goal.color);
+    }
 
     if player_collision {
         rgb = NORMAL_PLAYER_COLOR;
@@ -270,6 +274,11 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // update how long the frame took
         frame_time = frame_start.elapsed().as_micros() as f64 / 10000.0;
+
+        // go to the next level if the goal was reached
+        if map.goal.contains_point(&map.player.center) {
+            break;
+        }
     }
 
     // update window with the last rendered frame so that
