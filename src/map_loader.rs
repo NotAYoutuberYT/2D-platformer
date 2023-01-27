@@ -103,7 +103,7 @@ impl Map {
                     height: 40.0,
 
                     velocity: Vector2::new(0.0, 0.0),
-                }; 
+                };
 
                 self.goal = Circle::new(&Vector2::new(1250.0, 100.0), 20.0, GOAL_COLOR);
 
@@ -272,7 +272,7 @@ impl Map {
         }
 
         // set the starting player to the default player respawn
-        self.player = self.player_respawn.clone();
+        self.player = self.player_respawn;
 
         // put a moving platform end indicator
         // at the end of allmoving objects

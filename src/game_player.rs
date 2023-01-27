@@ -252,7 +252,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // reapawn if the player is too low
         if map.player.center.y < map.lowest_point {
-            map.player = map.player_respawn.clone();
+            map.player = map.player_respawn;
         }
 
         // keep camera centered on player

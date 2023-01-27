@@ -1,9 +1,13 @@
 #![allow(dead_code)]
 
-use std::vec;
+use std::{
+    sync::{Arc, Mutex},
+    thread::{self, JoinHandle},
+    vec,
+};
 
 // basic vector2 struct
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Vector2 {
     pub x: f64,
     pub y: f64,
@@ -129,14 +133,14 @@ pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> b
 // how the rigidbody collided with objects
 // note: the name refer to the rigidbody's position
 // relative to the object it collides with
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum CollisionTypes {
     Bottom,
     Side,
     Top,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct RigidBody {
     pub center: Vector2,
     pub width: f64,
@@ -167,68 +171,87 @@ impl RigidBody {
     and returns the index of the object the player was
     on, if any
     */
-    pub fn handle_collisions<T: RectObject>(
+    pub fn handle_collisions<T: RectObject + std::marker::Sync>(
         &mut self,
         objects: &[T],
-        active_collision: &mut Vec<CollisionTypes>,
+        active_collisions: &mut Vec<CollisionTypes>,
     ) -> Option<usize> {
-        let self_bounds = self.bounds();
-        let mut platform_on: Option<usize> = None; // this stores an index, not an object
+        let mut handles: Vec<JoinHandle<CollisionTypes>> = Vec::new();
 
-        for object in objects.iter().enumerate() {
+        let platform_on: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(None));
+        let self_tracker = Arc::new(Mutex::new(*self));
+
+        for (index, object) in objects.iter().enumerate() {
             // if the rigidbody doesn't collide with this object at all, move to the next object
-            if !self.collides_with(object.1) {
+            if !self.collides_with(object) {
                 continue;
             }
 
-            let obj_bounds = object.1.bounds();
+            let self_bounds = self.bounds();
+            let obj_bounds = object.bounds();
 
-            // determine the collision depth of each side of the object
-            let right_depth: f64 = obj_bounds.1 - self_bounds.0;
-            let left_depth: f64 = self_bounds.1 - obj_bounds.0;
-            let top_depth: f64 = obj_bounds.3 - self_bounds.2;
-            let bottom_depth: f64 = self_bounds.3 - obj_bounds.2;
+            let self_ptr = Arc::clone(&self_tracker);
+            let platform_on_ptr = Arc::clone(&platform_on);
 
-            // creates an iterator of an enumeration of the depths
-            let depths = [left_depth, right_depth, bottom_depth, top_depth];
-            let iter = depths.iter().enumerate();
+            handles.push(thread::spawn(move || {
+                // determine the collision depth of each side of the object
+                let right_depth: f64 = obj_bounds.1 - self_bounds.0;
+                let left_depth: f64 = self_bounds.1 - obj_bounds.0;
+                let top_depth: f64 = obj_bounds.3 - self_bounds.2;
+                let bottom_depth: f64 = self_bounds.3 - obj_bounds.2;
 
-            // and findes the entry with the minimum value (I can unwrap because there is a 0% chance of finding a None)
-            let min_index = iter
-                .reduce(|acc, item| match acc.1 < item.1 {
-                    true => acc,
-                    false => item,
-                })
-                .unwrap()
-                .0;
+                // creates an iterator of an enumeration of the depths
+                let depths = [left_depth, right_depth, bottom_depth, top_depth];
+                let iter = depths.iter().enumerate();
 
-            // move the player ouside of the platform
-            match min_index {
-                0 => self.center.x = obj_bounds.0 - (self.width / 2.0),
-                1 => self.center.x = obj_bounds.1 + (self.width / 2.0),
-                2 => self.center.y = obj_bounds.2 - (self.height / 2.0) - 1.0, // this stops the player from sticking to the object
-                3 => self.center.y = obj_bounds.3 + (self.height / 2.0),
-                _ => panic!("Error: closest to no side when handling rigidbody collisions"),
-            }
+                // and findes the entry with the minimum value (I can unwrap because there is a 0% chance of finding a None)
+                let min_index = iter
+                    .reduce(|acc, item| match acc.1 < item.1 {
+                        true => acc,
+                        false => item,
+                    })
+                    .unwrap()
+                    .0;
 
-            // finds what kind of collision it was
-            active_collision.push(match min_index {
-                0 => CollisionTypes::Side,
-                1 => CollisionTypes::Side,
-                2 => CollisionTypes::Bottom,
-                3 => CollisionTypes::Top,
-                _ => panic!("Error: closest to no side when handling rigidbody collisions"),
-            });
+                // move the player ouside of the platform
+                let mut guard = self_ptr.lock().unwrap();
+                match min_index {
+                    0 => guard.center.x = obj_bounds.0 - (guard.width / 2.0),
+                    1 => guard.center.x = obj_bounds.1 + (guard.width / 2.0),
+                    2 => guard.center.y = obj_bounds.2 - (guard.height / 2.0) - 1.0, // -1.0 stops physics bugs
+                    3 => guard.center.y = obj_bounds.3 + (guard.height / 2.0),
 
-            // update the platform that the player is on if they're on top of one
-            if let Some(collision_state) = active_collision.last() {
-                if collision_state == &CollisionTypes::Top {
-                    platform_on = Some(object.0);
+                    _ => panic!("Error: closest to no sien handling rigidbody collisions"),
                 }
-            }
+
+                // finds what kind of collision it was
+                let current_collision = match min_index {
+                    0 => CollisionTypes::Side,
+                    1 => CollisionTypes::Side,
+                    2 => CollisionTypes::Bottom,
+                    3 => CollisionTypes::Top,
+                    _ => panic!("Error: closest to no side when handling rigidbody collisions"),
+                };
+
+                // update the platform that the player is on if they're on top of one
+                if current_collision == CollisionTypes::Top {
+                    *platform_on_ptr.lock().unwrap() = Some(index);
+                }
+
+                current_collision
+            }));
         }
 
-        platform_on
+        // we unwrap because collision handling shouldn't panic
+        for handle in handles {
+            active_collisions.push(handle.join().unwrap());
+        }
+
+        let final_self = *self_tracker.lock().unwrap();
+        *self = final_self;
+
+        let index = *platform_on.lock().unwrap();
+        index
     }
 }
 
@@ -307,7 +330,7 @@ impl MovingObject {
         height: f64,
         move_time: f64,
     ) -> MovingObject {
-        let center: Vector2 = start_pos.clone();
+        let center: Vector2 = start_pos;
 
         MovingObject {
             start_pos,
@@ -474,7 +497,7 @@ pub struct Circle {
 impl Circle {
     pub fn new(center: &Vector2, radius: f64, color: u32) -> Circle {
         Circle {
-            center: center.clone(),
+            center: *center,
             radius_squared: radius * radius,
             color,
         }
