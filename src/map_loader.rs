@@ -1,4 +1,6 @@
-use crate::constants::{
+use crate::camera::RGB;
+
+use super::constants::{
     GOAL_COLOR, MOVING_PLATFORM_INDICATOR_COLOR, MOVING_PLATFORM_INDICATOR_RADIUS,
 };
 
@@ -32,7 +34,7 @@ impl Map {
 
             moving_object_indicators: Vec::new(),
             checkpoints: Vec::new(),
-            goal: Circle::new(&Vector2::new(0.0, 0.0), 0.0, 0),
+            goal: Circle::new(&Vector2::new(0.0, 0.0), 0.0, RGB::new(0, 0, 0)),
 
             player_respawn: RigidBody::new(),
             player: RigidBody::new(),
@@ -198,6 +200,13 @@ impl Map {
                         100.0,
                         30.0,
                         100.0,
+                    ),
+                    MovingObject::new(
+                        Vector2::new(420.0, 655.0),
+                        Vector2::new(480.0, 800.0),
+                        100.0,
+                        30.0,
+                        90.0,
                     ),
                 ];
 

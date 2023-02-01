@@ -1,56 +1,53 @@
 use super::{
-    camera::Camera,
+    camera::{Camera, RGB},
     constants::{
         BACKGROUND_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN, GRAVITY_MOVING_UP,
-        JUMP_BUFFER_HUNDRETH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR, NORMAL_PLAYER_COLOR,
-        PLAYER_AIR_ACCELL_RATIO, PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR,
-        STUCK_PLATFORM_VELOCITY_ADD_MODIFIER, VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, WINDOW_HEIGHT,
+        JUMP_BUFFER_HUNDRETH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
+        MOVING_PLATFORM_INDICATOR_COLOR, NORMAL_PLAYER_COLOR, PLAYER_AIR_ACCELL_RATIO,
+        PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER,
+        VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, VOID_COLOR, VOID_TRANSITION_SIZE, WINDOW_HEIGHT,
         WINDOW_WIDTH,
     },
     map_loader::Map,
-    objects::{bounds_contain_point, CollisionTypes, MovingObject, RectObject, Vector2},
+    objects::{CollisionTypes, MovingObject, RectObject, Vector2},
 };
 
 use minifb::{Key, KeyRepeat, Window};
 
 // this is the function we use to render the game
-fn render_game(world_point: Vector2, map: &Map) -> u32 {
-    let rgb: u32;
-
-    let mut player_collision: bool = false;
-    let mut static_object_collision: bool = false;
-    let mut moving_object_collision: bool = false;
+fn render_game(world_point: Vector2, map: &Map) -> RGB {
+    let rgb: RGB;
 
     // determine collision with player
-    if map.player.contains_point(&world_point) {
-        player_collision = true;
-    }
+    let player_collision = map.player.contains_point(&world_point);
 
     // determine collision with static objects
-    map.static_objects.iter().for_each(|object| {
-        if bounds_contain_point(&world_point, &object.bounds()) {
-            static_object_collision = true;
-        }
-    });
+    let static_object_collision = map
+        .static_objects
+        .iter()
+        .any(|object| object.bounds().contains_point(&world_point));
 
     // determine collision with moving objects
-    map.moving_objects.iter().for_each(|object| {
-        if bounds_contain_point(&world_point, &object.bounds()) {
-            moving_object_collision = true;
-        }
-    });
+    let moving_object_collision = map
+        .moving_objects
+        .iter()
+        .any(|object| object.bounds().contains_point(&world_point));
 
     // determine if there should be any rendering of circles
-    let mut circle_color: Option<u32> = None;
-    map.moving_object_indicators.iter().for_each(|circle| {
-        if circle.contains_point(&world_point) {
-            circle_color = Some(circle.color);
-        }
-    });
+    let mut circle_color: Option<RGB> = None;
+    if map
+        .moving_object_indicators
+        .iter()
+        .any(|circle| circle.contains_point(&world_point))
+    {
+        circle_color = Some(MOVING_PLATFORM_INDICATOR_COLOR)
+    }
+
     if map.goal.contains_point(&world_point) {
         circle_color = Some(map.goal.color);
     }
 
+    // find the proper rgb value
     if player_collision {
         rgb = NORMAL_PLAYER_COLOR;
     } else if moving_object_collision {
@@ -59,8 +56,14 @@ fn render_game(world_point: Vector2, map: &Map) -> u32 {
         rgb = STATIC_OBJECT_COLOR;
     } else if let Some(color) = circle_color {
         rgb = color;
-    } else {
+    } else if world_point.y > map.lowest_point + VOID_TRANSITION_SIZE / 2.0 {
         rgb = BACKGROUND_COLOR;
+    } else if world_point.y < map.lowest_point - VOID_TRANSITION_SIZE / 2.0 {
+        rgb = VOID_COLOR;
+    } else {
+        let distance_in =
+            (map.lowest_point + VOID_TRANSITION_SIZE / 2.0 - world_point.y) / VOID_TRANSITION_SIZE;
+        rgb = BACKGROUND_COLOR.blend(distance_in, VOID_COLOR);
     }
 
     rgb
@@ -124,7 +127,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             player_acceleration_vector.x -= current_x_accell;
         }
 
-        // configure horizontal acceleration
+        // find horizontal acceleration
         let current_friction = f64::min(
             map.player.velocity.x.abs(),
             match collision.contains(&CollisionTypes::Top) {
@@ -134,11 +137,10 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         );
 
         // apply friction
-        if map.player.velocity.x < 0.0 {
-            player_acceleration_vector.x += current_friction;
-        } else {
-            player_acceleration_vector.x -= current_friction;
-        }
+        player_acceleration_vector.x += match map.player.velocity.x < 0.0 {
+            true => current_friction,
+            false => -current_friction,
+        };
 
         // move the player (we integrate the player's movement to make
         // the physics continuous and therefore framerate-independent)
@@ -174,7 +176,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
                 stuck_obj.update(frame_time);
                 map.player.center.x += stuck_obj.prev_move.x;
                 // move the player slightly into the platform to keep them stuck
-                map.player.center.y = stuck_obj.bounds().3 + map.player.height / 2.0 - 0.01;
+                map.player.center.y = stuck_obj.bounds().top + map.player.height / 2.0 - 0.01;
             }
         }
 
@@ -276,7 +278,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         frame_time = frame_start.elapsed().as_micros() as f64 / 10000.0;
 
         // go to the next level if the goal was reached
-        if map.goal.contains_point(&map.player.center) {
+        if map.goal.intersects_rigidbody(&map.player) {
             break;
         }
     }

@@ -1,10 +1,10 @@
-#![allow(dead_code)]
-
 use std::{
     sync::{Arc, Mutex},
     thread::{self, JoinHandle},
     vec,
 };
+
+use crate::camera::RGB;
 
 // basic vector2 struct
 #[derive(Clone, Copy)]
@@ -48,10 +48,31 @@ impl Vector2 {
     }
 }
 
-// ensures f2 is beteen f1 and f3
-// (f1 must be below f3 for a return of true)
+/// checks if f1 is between f1 and f3
+/// (f1 must be below f3 for a return of true)
 fn sandwich(f1: f64, f2: f64, f3: f64) -> bool {
     f1 < f2 && f2 < f3
+}
+
+/// a struct for holding the bounds of an object
+/// teach of the values represents the distance
+/// of that side from the center of the object
+pub struct Bounds {
+    pub top: f64,
+    pub left: f64,
+    pub bottom: f64,
+    pub right: f64,
+}
+
+impl Bounds {
+    /// determines if a Vector2 lies within an object's bounds
+    pub fn contains_point(&self, point: &Vector2) -> bool {
+        // if we detect the point too far to the left, too far the right, too far down, or too high up, return false
+        !(point.x < self.left
+            || self.right < point.x
+            || point.y < self.bottom
+            || self.top < point.y)
+    }
 }
 
 //
@@ -69,17 +90,17 @@ pub trait RectObject {
     /// returns a vector containing the leftmost
     /// x value, rightmost x value, lowest y
     /// value, and uppermost y value respectively
-    fn bounds(&self) -> (f64, f64, f64, f64);
+    fn bounds(&self) -> Bounds;
 
     /// determines if a Vector2 lies within the object
     /// (being on an edge doesn't count as being inside)
     fn contains_point(&self, point: &Vector2) -> bool {
-        let bounds: (f64, f64, f64, f64) = self.bounds();
+        let bounds = self.bounds();
 
         // if we detect the point outside of the
         // box at any time, set inside to false
-        let outside_x = point.x < bounds.0 || bounds.1 < point.x;
-        let outside_y = point.y < bounds.2 || bounds.3 < point.y;
+        let outside_x = point.x < bounds.left || bounds.right < point.x;
+        let outside_y = point.y < bounds.bottom || bounds.top < point.y;
 
         !(outside_x || outside_y)
     }
@@ -88,12 +109,14 @@ pub trait RectObject {
     /// a vertical line that passes through
     /// self and a passed in RectObject
     fn collides_with_y(&self, other: &dyn RectObject) -> bool {
-        let self_bounds: (f64, f64, f64, f64) = self.bounds();
-        let other_bounds: (f64, f64, f64, f64) = other.bounds();
+        let self_bounds = self.bounds();
+        let other_bounds = other.bounds();
 
-        let self_left_in_other = sandwich(other_bounds.0, self_bounds.0, other_bounds.1);
-        let self_right_in_other = sandwich(other_bounds.0, self_bounds.1, other_bounds.1);
-        let self_contain_other = self_bounds.0 <= other_bounds.0 && other_bounds.1 < self_bounds.1;
+        let self_left_in_other = sandwich(other_bounds.left, self_bounds.left, other_bounds.right);
+        let self_right_in_other =
+            sandwich(other_bounds.left, self_bounds.right, other_bounds.right);
+        let self_contain_other =
+            self_bounds.left < other_bounds.left && other_bounds.right < self_bounds.right;
 
         self_left_in_other || self_right_in_other || self_contain_other
     }
@@ -102,12 +125,14 @@ pub trait RectObject {
     /// a horizontal line that passes through
     /// self and a passed in RectObject
     fn collides_with_x(&self, other: &dyn RectObject) -> bool {
-        let self_bounds: (f64, f64, f64, f64) = self.bounds();
-        let other_bounds: (f64, f64, f64, f64) = other.bounds();
+        let self_bounds = self.bounds();
+        let other_bounds = other.bounds();
 
-        let self_bottom_in_other = sandwich(other_bounds.2, self_bounds.2, other_bounds.3);
-        let self_top_in_other = sandwich(other_bounds.2, self_bounds.3, other_bounds.3);
-        let self_contain_other = self_bounds.2 <= other_bounds.2 && other_bounds.3 < self_bounds.3;
+        let self_bottom_in_other =
+            sandwich(other_bounds.bottom, self_bounds.bottom, other_bounds.top);
+        let self_top_in_other = sandwich(other_bounds.bottom, self_bounds.top, other_bounds.top);
+        let self_contain_other =
+            self_bounds.bottom <= other_bounds.bottom && other_bounds.top < self_bounds.top;
 
         self_bottom_in_other || self_top_in_other || self_contain_other
     }
@@ -117,12 +142,6 @@ pub trait RectObject {
     fn collides_with(&self, other: &dyn RectObject) -> bool {
         self.collides_with_x(other) && self.collides_with_y(other)
     }
-}
-
-/// determines if a Vector2 lies within an object's bounds
-pub fn bounds_contain_point(point: &Vector2, bounds: &(f64, f64, f64, f64)) -> bool {
-    // if we detect the point too far to the left, too far the right, too far down, or too high up, return false
-    !(point.x < bounds.0 || bounds.1 < point.x || point.y < bounds.2 || bounds.3 < point.y)
 }
 
 //
@@ -140,6 +159,9 @@ pub enum CollisionTypes {
     Top,
 }
 
+/// struct to represent an object with physics
+/// * movement must be handled manually
+/// * collision functions are provided
 #[derive(Clone, Copy)]
 pub struct RigidBody {
     pub center: Vector2,
@@ -195,10 +217,10 @@ impl RigidBody {
 
             handles.push(thread::spawn(move || {
                 // determine the collision depth of each side of the object
-                let right_depth: f64 = obj_bounds.1 - self_bounds.0;
-                let left_depth: f64 = self_bounds.1 - obj_bounds.0;
-                let top_depth: f64 = obj_bounds.3 - self_bounds.2;
-                let bottom_depth: f64 = self_bounds.3 - obj_bounds.2;
+                let right_depth: f64 = obj_bounds.right - self_bounds.left;
+                let left_depth: f64 = self_bounds.right - obj_bounds.left;
+                let top_depth: f64 = obj_bounds.top - self_bounds.bottom;
+                let bottom_depth: f64 = self_bounds.top - obj_bounds.bottom;
 
                 // creates an iterator of an enumeration of the depths
                 let depths = [left_depth, right_depth, bottom_depth, top_depth];
@@ -216,13 +238,15 @@ impl RigidBody {
                 // move the player ouside of the platform
                 let mut guard = self_ptr.lock().unwrap();
                 match min_index {
-                    0 => guard.center.x = obj_bounds.0 - (guard.width / 2.0),
-                    1 => guard.center.x = obj_bounds.1 + (guard.width / 2.0),
-                    2 => guard.center.y = obj_bounds.2 - (guard.height / 2.0) - 1.0, // -1.0 stops physics bugs
-                    3 => guard.center.y = obj_bounds.3 + (guard.height / 2.0),
+                    0 => guard.center.x = obj_bounds.left - (guard.width / 2.0),
+                    1 => guard.center.x = obj_bounds.right + (guard.width / 2.0),
+                    2 => guard.center.y = obj_bounds.bottom - (guard.height / 2.0) - 1.0, // -1.0 stops physics bugs
+                    3 => guard.center.y = obj_bounds.top + (guard.height / 2.0),
 
                     _ => panic!("Error: closest to no sien handling rigidbody collisions"),
                 }
+
+                std::mem::drop(guard);
 
                 // finds what kind of collision it was
                 let current_collision = match min_index {
@@ -283,20 +307,17 @@ impl RectObject for RigidBody {
         points
     }
 
-    fn bounds(&self) -> (f64, f64, f64, f64) {
-        let mut points: (f64, f64, f64, f64) = (0.0, 0.0, 0.0, 0.0);
-
-        // push left x, right x
+    fn bounds(&self) -> Bounds {
         let half_width: f64 = self.width / 2.0;
-        points.0 = self.center.x - half_width;
-        points.1 = self.center.x + half_width;
-
-        // push bottom y, top y
         let half_height: f64 = self.height / 2.0;
-        points.2 = self.center.y - half_height;
-        points.3 = self.center.y + half_height;
 
-        points
+        Bounds {
+            left: self.center.x - half_width,
+            right: self.center.x + half_width,
+
+            bottom: self.center.y - half_height,
+            top: self.center.y + half_height,
+        }
     }
 }
 
@@ -410,20 +431,17 @@ impl RectObject for MovingObject {
         points
     }
 
-    fn bounds(&self) -> (f64, f64, f64, f64) {
-        let mut points: (f64, f64, f64, f64) = (0.0, 0.0, 0.0, 0.0);
-
-        // push left x, right x
+    fn bounds(&self) -> Bounds {
         let half_width: f64 = self.width / 2.0;
-        points.0 = self.center.x - half_width;
-        points.1 = self.center.x + half_width;
-
-        // push bottom y, top y
         let half_height: f64 = self.height / 2.0;
-        points.2 = self.center.y - half_height;
-        points.3 = self.center.y + half_height;
 
-        points
+        Bounds {
+            left: self.center.x - half_width,
+            right: self.center.x + half_width,
+
+            bottom: self.center.y - half_height,
+            top: self.center.y + half_height,
+        }
     }
 }
 
@@ -466,20 +484,17 @@ impl RectObject for StaticObject {
         points
     }
 
-    fn bounds(&self) -> (f64, f64, f64, f64) {
-        let mut points: (f64, f64, f64, f64) = (0.0, 0.0, 0.0, 0.0);
-
-        // push left x, right x
+    fn bounds(&self) -> Bounds {
         let half_width: f64 = self.width / 2.0;
-        points.0 = self.center.x - half_width;
-        points.1 = self.center.x + half_width;
-
-        // push bottom y, top y
         let half_height: f64 = self.height / 2.0;
-        points.2 = self.center.y - half_height;
-        points.3 = self.center.y + half_height;
 
-        points
+        Bounds {
+            left: self.center.x - half_width,
+            right: self.center.x + half_width,
+
+            bottom: self.center.y - half_height,
+            top: self.center.y + half_height,
+        }
     }
 }
 
@@ -487,18 +502,18 @@ impl RectObject for StaticObject {
 // Circle code
 //
 
-// a circle with no collisions used to indicate sutff
+// a circle with no collisions used to indicate sutffz
 pub struct Circle {
     center: Vector2,
-    radius_squared: f64,
-    pub color: u32,
+    radius: f64,
+    pub color: RGB,
 }
 
 impl Circle {
-    pub fn new(center: &Vector2, radius: f64, color: u32) -> Circle {
+    pub fn new(center: &Vector2, radius: f64, color: RGB) -> Circle {
         Circle {
             center: *center,
-            radius_squared: radius * radius,
+            radius,
             color,
         }
     }
@@ -508,6 +523,33 @@ impl Circle {
         let distance_from_center_squared = vector_from_center.x * vector_from_center.x
             + vector_from_center.y * vector_from_center.y;
 
-        distance_from_center_squared < self.radius_squared
+        distance_from_center_squared < self.radius * self.radius
+    }
+
+    pub fn intersects_rigidbody(&self, rigidbody: &RigidBody) -> bool {
+        let distance = Vector2::new(
+            (self.center.x - rigidbody.center.x).abs(),
+            (self.center.y - rigidbody.center.y).abs(),
+        );
+
+        if distance.x > rigidbody.width / 2.0 + self.radius {
+            return false;
+        }
+        if distance.y > rigidbody.height / 2.0 + self.radius {
+            return false;
+        }
+
+        if distance.x <= rigidbody.width / 2.0 {
+            return true;
+        }
+        if distance.y <= rigidbody.height / 2.0 {
+            return true;
+        }
+
+        let corner_distance_squared = (distance.x - rigidbody.width / 2.0)
+            * (distance.x - rigidbody.width / 2.0)
+            + (distance.y - rigidbody.height / 2.0) * (distance.y - rigidbody.height / 2.0);
+
+        corner_distance_squared <= self.radius * self.radius
     }
 }

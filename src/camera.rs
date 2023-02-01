@@ -9,6 +9,46 @@ use super::{
     objects::{RigidBody, Vector2},
 };
 
+#[derive(Clone, Copy)]
+pub struct RGB {
+    pub red: u8,
+    pub blue: u8,
+    pub green: u8,
+}
+
+impl RGB {
+    // used for blending colors
+    fn lerp(lerp_ammount: f64, v1: u8, v2: u8) -> u8 {
+        (lerp_ammount * v2 as f64 + (1.0 - lerp_ammount) * v1 as f64) as u8
+    }
+
+    pub fn new(red: u8, blue: u8, green: u8) -> RGB {
+        RGB { red, green, blue }
+    }
+
+    pub const fn from_u32(number: u32) -> RGB {
+        RGB {
+            red: ((number & 0xff0000) / 0x10000) as u8,
+            green: ((number & 0xff00) / 0x100) as u8,
+            blue: (number & 0xff) as u8,
+        }
+    }
+
+    /// convert to a u32
+    pub fn to_u32(&self) -> u32 {
+        return self.red as u32 * 0x10000 + self.green as u32 * 0x100 + self.blue as u32;
+    }
+
+    /// blends with another color
+    pub fn blend(&self, blend_ammount: f64, color: RGB) -> RGB {
+        RGB {
+            red: Self::lerp(blend_ammount, self.red, color.red),
+            green: Self::lerp(blend_ammount, self.green, color.green),
+            blue: Self::lerp(blend_ammount, self.blue, color.blue),
+        }
+    }
+}
+
 pub struct Camera {
     pub bottom_left: Vector2,
 }
@@ -93,7 +133,7 @@ impl Camera {
         render: &dyn Fn(
             Vector2, // the point in space to render
             &Map,    // the map to render
-        ) -> u32,
+        ) -> RGB,
         map: &Map,
         buffer: &mut [u32],
     ) {
@@ -102,7 +142,7 @@ impl Camera {
                 // the coordinate in the world that this pixel is
                 let world_point = self.get_game_position(Vector2::new(x as f64, y as f64));
 
-                buffer[y * super::WINDOW_WIDTH + x] = render(world_point, map);
+                buffer[y * super::WINDOW_WIDTH + x] = render(world_point, map).to_u32();
             }
         }
     }
