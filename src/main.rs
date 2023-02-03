@@ -16,8 +16,8 @@ mod objects;
 mod camera;
 use constants::{FRAME_LIMIT_MILLIS, WINDOW_HEIGHT, WINDOW_WIDTH};
 
-mod map_loader;
-use map_loader::Map;
+mod map;
+use map::Map;
 
 mod constants;
 

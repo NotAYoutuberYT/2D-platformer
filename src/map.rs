@@ -1,10 +1,30 @@
-use crate::camera::RGB;
-
-use super::constants::{
-    GOAL_COLOR, MOVING_PLATFORM_INDICATOR_COLOR, MOVING_PLATFORM_INDICATOR_RADIUS,
+use super::{
+    camera::Rgb,
+    constants::{
+        CHECKPOINT_COLOR, GOAL_COLOR, MOVING_PLATFORM_INDICATOR_COLOR,
+        MOVING_PLATFORM_INDICATOR_RADIUS, PLAYER_HEIGHT, PLAYER_WIDTH,
+    },
+    objects::{Circle, MovingObject, RigidBody, StaticObject, Vector2},
 };
 
-use super::objects::{Circle, MovingObject, RigidBody, StaticObject, Vector2};
+pub struct Checkpoint {
+    pub indicator: Circle,
+    pub respawn: RigidBody,
+}
+
+impl Checkpoint {
+    pub fn new(indicator: Circle, player_center: Vector2) -> Checkpoint {
+        Checkpoint {
+            indicator,
+            respawn: RigidBody {
+                center: player_center,
+                width: PLAYER_WIDTH,
+                height: PLAYER_HEIGHT,
+                velocity: Vector2::new(0.0, 0.0),
+            },
+        }
+    }
+}
 
 pub struct Map {
     pub static_objects: Vec<StaticObject>,
@@ -12,7 +32,7 @@ pub struct Map {
 
     // circles
     pub moving_object_indicators: Vec<Circle>,
-    pub checkpoints: Vec<Circle>,
+    pub checkpoints: Vec<Checkpoint>,
     pub goal: Circle,
 
     /// the rigidbody the player will
@@ -34,7 +54,7 @@ impl Map {
 
             moving_object_indicators: Vec::new(),
             checkpoints: Vec::new(),
-            goal: Circle::new(&Vector2::new(0.0, 0.0), 0.0, RGB::new(0, 0, 0)),
+            goal: Circle::new(&Vector2::new(0.0, 0.0), 0.0, Rgb::new(0, 0, 0)),
 
             player_respawn: RigidBody::new(),
             player: RigidBody::new(),
@@ -66,8 +86,8 @@ impl Map {
 
                 self.player_respawn = RigidBody {
                     center: Vector2::new(0.0, 0.0),
-                    width: 20.0,
-                    height: 40.0,
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
@@ -101,8 +121,8 @@ impl Map {
 
                 self.player_respawn = RigidBody {
                     center: Vector2::new(0.0, 0.0),
-                    width: 20.0,
-                    height: 40.0,
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
@@ -146,8 +166,8 @@ impl Map {
 
                 self.player_respawn = RigidBody {
                     center: Vector2::new(100.0, 0.0),
-                    width: 20.0,
-                    height: 40.0,
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
@@ -158,6 +178,60 @@ impl Map {
             }
 
             4 => {
+                self.static_objects = vec![
+                    StaticObject {
+                        center: Vector2::new(100.0, -500.0),
+                        width: 400.0,
+                        height: 1000.0,
+                    },
+                    StaticObject {
+                        center: Vector2::new(480.0, 10.0),
+                        width: 100.0,
+                        height: 100.0,
+                    },
+                    StaticObject {
+                        center: Vector2::new(100.0, 250.0),
+                        width: 200.0,
+                        height: 90.0,
+                    },
+                    StaticObject {
+                        center: Vector2::new(-150.0, 300.0),
+                        width: 110.0,
+                        height: 110.0,
+                    },
+                ];
+
+                self.moving_objects = vec![
+                    MovingObject::new(
+                        Vector2::new(365.0, 100.0),
+                        Vector2::new(365.0, 210.0),
+                        120.0,
+                        30.0,
+                        140.0,
+                    ),
+                    MovingObject::new(
+                        Vector2::new(-30.0, 420.0),
+                        Vector2::new(300.0, 470.0),
+                        100.0,
+                        30.0,
+                        200.0,
+                    ),
+                ];
+
+                self.player_respawn = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
+
+                self.goal = Circle::new(&Vector2::new(300.0, 520.0), 20.0, GOAL_COLOR);
+
+                self.lowest_point = -120.0;
+            }
+
+            5 => {
                 self.static_objects = vec![
                     StaticObject {
                         center: Vector2::new(100.0, -520.0),
@@ -201,80 +275,24 @@ impl Map {
                         30.0,
                         100.0,
                     ),
-                    MovingObject::new(
-                        Vector2::new(420.0, 655.0),
-                        Vector2::new(480.0, 800.0),
-                        100.0,
-                        30.0,
-                        90.0,
-                    ),
                 ];
 
                 self.player_respawn = RigidBody {
                     center: Vector2::new(0.0, 0.0),
-                    width: 20.0,
-                    height: 40.0,
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
 
                     velocity: Vector2::new(0.0, 0.0),
                 };
+
+                self.checkpoints = vec![Checkpoint::new(
+                    Circle::new(&Vector2::new(80.0, 400.0), 15.0, CHECKPOINT_COLOR),
+                    Vector2::new(80.0, 360.0 + PLAYER_HEIGHT / 2.0),
+                )];
 
                 self.goal = Circle::new(&Vector2::new(440.0, 765.0), 20.0, GOAL_COLOR);
 
                 self.lowest_point = -250.0;
-            }
-
-            5 => {
-                self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(100.0, -500.0),
-                        width: 400.0,
-                        height: 1000.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(480.0, 10.0),
-                        width: 100.0,
-                        height: 100.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(100.0, 250.0),
-                        width: 200.0,
-                        height: 90.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(-150.0, 300.0),
-                        width: 110.0,
-                        height: 110.0,
-                    },
-                ];
-
-                self.moving_objects = vec![
-                    MovingObject::new(
-                        Vector2::new(365.0, 100.0),
-                        Vector2::new(365.0, 210.0),
-                        120.0,
-                        30.0,
-                        140.0,
-                    ),
-                    MovingObject::new(
-                        Vector2::new(-30.0, 420.0),
-                        Vector2::new(300.0, 470.0),
-                        100.0,
-                        30.0,
-                        200.0,
-                    ),
-                ];
-
-                self.player_respawn = RigidBody {
-                    center: Vector2::new(0.0, 0.0),
-                    width: 20.0,
-                    height: 40.0,
-
-                    velocity: Vector2::new(0.0, 0.0),
-                };
-
-                self.goal = Circle::new(&Vector2::new(300.0, 520.0), 20.0, GOAL_COLOR);
-
-                self.lowest_point = -120.0;
             }
 
             _ => panic!("Map.load_map given improper level number"),

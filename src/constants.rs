@@ -2,20 +2,24 @@
 // config constants
 //
 
-use crate::camera::RGB;
+use crate::camera::Rgb;
 
 // colors :)
-pub const NORMAL_PLAYER_COLOR: RGB = RGB::from_u32(0xf00000);
-pub const MOVING_OBJECT_COLOR: RGB = RGB::from_u32(0xff00);
-pub const STATIC_OBJECT_COLOR: RGB = RGB::from_u32(0xff);
-pub const MOVING_PLATFORM_INDICATOR_COLOR: RGB = RGB::from_u32(0xeeeeee);
-pub const GOAL_COLOR: RGB = RGB::from_u32(0xf6f70b);
-pub const BACKGROUND_COLOR: RGB = RGB::from_u32(0x200020);
-pub const VOID_COLOR: RGB = RGB::from_u32(0x100010);
+pub const NORMAL_PLAYER_COLOR: Rgb = Rgb::from_u32(0xf00000);
+pub const MOVING_OBJECT_COLOR: Rgb = Rgb::from_u32(0x6cc06);
+pub const STATIC_OBJECT_COLOR: Rgb = Rgb::from_u32(0xff);
+pub const MOVING_PLATFORM_INDICATOR_COLOR: Rgb = Rgb::from_u32(0xeeeeee);
+pub const CHECKPOINT_COLOR: Rgb = Rgb::from_u32(0xff00);
+pub const GOAL_COLOR: Rgb = Rgb::from_u32(0xf6f70b);
+pub const BACKGROUND_COLOR: Rgb = Rgb::from_u32(0x200020);
+pub const VOID_COLOR: Rgb = Rgb::from_u32(0x100010);
 
 // sizes
 pub const MOVING_PLATFORM_INDICATOR_RADIUS: f64 = 5.0;
 pub const VOID_TRANSITION_SIZE: f64 = 60.0;
+
+pub const PLAYER_WIDTH: f64 = 20.0;
+pub const PLAYER_HEIGHT: f64 = 40.0;
 
 // window stuff
 pub const WINDOW_WIDTH: usize = 260 * 4;

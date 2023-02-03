@@ -1,5 +1,7 @@
+use crate::constants::CHECKPOINT_COLOR;
+
 use super::{
-    camera::{Camera, RGB},
+    camera::{Camera, Rgb},
     constants::{
         BACKGROUND_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN, GRAVITY_MOVING_UP,
         JUMP_BUFFER_HUNDRETH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
@@ -8,15 +10,15 @@ use super::{
         VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, VOID_COLOR, VOID_TRANSITION_SIZE, WINDOW_HEIGHT,
         WINDOW_WIDTH,
     },
-    map_loader::Map,
+    map::Map,
     objects::{CollisionTypes, MovingObject, RectObject, Vector2},
 };
 
 use minifb::{Key, KeyRepeat, Window};
 
 // this is the function we use to render the game
-fn render_game(world_point: Vector2, map: &Map) -> RGB {
-    let rgb: RGB;
+fn render_game(world_point: Vector2, map: &Map) -> Rgb {
+    let rgb: Rgb;
 
     // determine collision with player
     let player_collision = map.player.contains_point(&world_point);
@@ -34,13 +36,21 @@ fn render_game(world_point: Vector2, map: &Map) -> RGB {
         .any(|object| object.bounds().contains_point(&world_point));
 
     // determine if there should be any rendering of circles
-    let mut circle_color: Option<RGB> = None;
+    let mut circle_color: Option<Rgb> = None;
     if map
         .moving_object_indicators
         .iter()
         .any(|circle| circle.contains_point(&world_point))
     {
         circle_color = Some(MOVING_PLATFORM_INDICATOR_COLOR)
+    }
+
+    if map
+        .checkpoints
+        .iter()
+        .any(|checkpoint| checkpoint.indicator.contains_point(&world_point))
+    {
+        circle_color = Some(CHECKPOINT_COLOR);
     }
 
     if map.goal.contains_point(&world_point) {
@@ -250,6 +260,13 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             || collision.contains(&CollisionTypes::Bottom)
         {
             map.player.velocity.y = VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT;
+        }
+
+        // handle checkpoints
+        for checkpoint in &map.checkpoints {
+            if checkpoint.indicator.intersects_rigidbody(&map.player) {
+                map.player_respawn = checkpoint.respawn;
+            }
         }
 
         // reapawn if the player is too low

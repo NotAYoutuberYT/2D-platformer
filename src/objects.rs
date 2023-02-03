@@ -4,7 +4,7 @@ use std::{
     vec,
 };
 
-use crate::camera::RGB;
+use crate::camera::Rgb;
 
 // basic vector2 struct
 #[derive(Clone, Copy)]
@@ -506,11 +506,11 @@ impl RectObject for StaticObject {
 pub struct Circle {
     center: Vector2,
     radius: f64,
-    pub color: RGB,
+    pub color: Rgb,
 }
 
 impl Circle {
-    pub fn new(center: &Vector2, radius: f64, color: RGB) -> Circle {
+    pub fn new(center: &Vector2, radius: f64, color: Rgb) -> Circle {
         Circle {
             center: *center,
             radius,
