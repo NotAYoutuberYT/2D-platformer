@@ -28,12 +28,12 @@ pub const FPS: f64 = 144.0;
 
 // player stuff
 pub const PLAYER_WALKING_ACCEL: f64 = 2.4;
-pub const PLAYER_AIR_ACCELL_RATIO: f64 = 0.05;
+pub const PLAYER_AIR_ACCELERATION_RATIO: f64 = 0.05;
 pub const STUCK_PLATFORM_VELOCITY_ADD_MODIFIER: f64 = 0.6;
 
 // jump stuff
 pub const JUMP_FORCE: f64 = 5.0;
-pub const JUMP_BUFFER_HUNDRETH_SECONDS: f64 = 0.0006;
+pub const JUMP_BUFFER_HUNDREDTH_SECONDS: f64 = 0.0006;
 
 // physics stuff
 pub const FRICTION_GROUND: f64 = 0.7;

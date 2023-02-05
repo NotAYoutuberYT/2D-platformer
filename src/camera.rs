@@ -18,8 +18,8 @@ pub struct Rgb {
 
 impl Rgb {
     // used for blending colors
-    fn lerp(lerp_ammount: f64, v1: u8, v2: u8) -> u8 {
-        (lerp_ammount * v2 as f64 + (1.0 - lerp_ammount) * v1 as f64) as u8
+    fn lerp(lerp_amount: f64, v1: u8, v2: u8) -> u8 {
+        (lerp_amount * v2 as f64 + (1.0 - lerp_amount) * v1 as f64) as u8
     }
 
     pub fn new(red: u8, blue: u8, green: u8) -> Rgb {
@@ -40,11 +40,11 @@ impl Rgb {
     }
 
     /// blends with another color
-    pub fn blend(&self, blend_ammount: f64, color: Rgb) -> Rgb {
+    pub fn blend(&self, blend_amount: f64, color: Rgb) -> Rgb {
         Rgb {
-            red: Self::lerp(blend_ammount, self.red, color.red),
-            green: Self::lerp(blend_ammount, self.green, color.green),
-            blue: Self::lerp(blend_ammount, self.blue, color.blue),
+            red: Self::lerp(blend_amount, self.red, color.red),
+            green: Self::lerp(blend_amount, self.green, color.green),
+            blue: Self::lerp(blend_amount, self.blue, color.blue),
         }
     }
 }
@@ -123,7 +123,7 @@ impl Camera {
     }
 
     // renders the camera, using the inputted function to convert
-    // pixels in the gamespace into rgb values
+    // pixels in the game world into rgb values
 
     // the function should take the following inputs:
     // the game point, the player bounds, if the player is sprinting,

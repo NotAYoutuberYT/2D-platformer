@@ -4,8 +4,8 @@ use super::{
     camera::{Camera, Rgb},
     constants::{
         BACKGROUND_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN, GRAVITY_MOVING_UP,
-        JUMP_BUFFER_HUNDRETH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
-        MOVING_PLATFORM_INDICATOR_COLOR, NORMAL_PLAYER_COLOR, PLAYER_AIR_ACCELL_RATIO,
+        JUMP_BUFFER_HUNDREDTH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
+        MOVING_PLATFORM_INDICATOR_COLOR, NORMAL_PLAYER_COLOR, PLAYER_AIR_ACCELERATION_RATIO,
         PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER,
         VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, VOID_COLOR, VOID_TRANSITION_SIZE, WINDOW_HEIGHT,
         WINDOW_WIDTH,
@@ -125,16 +125,16 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         };
 
         // configure horizontal acceleration (movement)
-        let mut current_x_accell = PLAYER_WALKING_ACCEL;
+        let mut current_x_acceleration = PLAYER_WALKING_ACCEL;
         if !collision.contains(&CollisionTypes::Top) {
-            current_x_accell *= PLAYER_AIR_ACCELL_RATIO;
+            current_x_acceleration *= PLAYER_AIR_ACCELERATION_RATIO;
         }
 
         if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
-            player_acceleration_vector.x += current_x_accell;
+            player_acceleration_vector.x += current_x_acceleration;
         }
         if window.is_key_down(Key::A) || window.is_key_down(Key::Left) {
-            player_acceleration_vector.x -= current_x_accell;
+            player_acceleration_vector.x -= current_x_acceleration;
         }
 
         // find horizontal acceleration
@@ -226,12 +226,12 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         }
 
         // if any of the space keys are pressed, start jump buffer
-        let jump_pressed = window.is_key_pressed(Key::Space, minifb::KeyRepeat::No)
-            || window.is_key_pressed(Key::W, minifb::KeyRepeat::No)
-            || window.is_key_pressed(Key::Up, minifb::KeyRepeat::No);
+        let jump_pressed = window.is_key_pressed(Key::Space, KeyRepeat::No)
+            || window.is_key_pressed(Key::W, KeyRepeat::No)
+            || window.is_key_pressed(Key::Up, KeyRepeat::No);
 
         if jump_pressed {
-            jump_buffer = JUMP_BUFFER_HUNDRETH_SECONDS;
+            jump_buffer = JUMP_BUFFER_HUNDREDTH_SECONDS;
         }
 
         // handle jumping
@@ -269,7 +269,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             }
         }
 
-        // reapawn if the player is too low or is being squished
+        // respawn if the player is too low or is being squished
         if map.player.center.y < map.lowest_point
             || (collision.contains(&CollisionTypes::Top)
                 && collision.contains(&CollisionTypes::Bottom))
@@ -307,7 +307,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
     // update window with the last rendered frame so that
     // any keys pressed last frame don't count as pressed
-    // next time they're read with keyrepeat true
+    // next time they're read with key-repeat true
     window
         .update_with_buffer(&window_buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
         .unwrap_or_else(|error| {

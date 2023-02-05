@@ -239,7 +239,7 @@ impl RigidBody {
     and returns the index of the object the player was
     on, if any
     */
-    pub fn handle_collisions<T: RectObject + std::marker::Sync>(
+    pub fn handle_collisions<T: RectObject>(
         &mut self,
         objects: &[T],
         active_collisions: &mut Vec<CollisionTypes>,
@@ -272,7 +272,7 @@ impl RigidBody {
                 let depths = [left_depth, right_depth, bottom_depth, top_depth];
                 let iter = depths.iter().enumerate();
 
-                // and findes the entry with the minimum value (I can unwrap because there is a 0% chance of finding a None)
+                // and finds the entry with the minimum value (I can unwrap because there is a 0% chance of finding a None)
                 let min_index = iter
                     .reduce(|acc, item| match acc.1 < item.1 {
                         true => acc,
@@ -292,7 +292,7 @@ impl RigidBody {
                     _ => panic!("Error: closest to no side handling rigidbody collisions"),
                 }
 
-                std::mem::drop(guard);
+                drop(guard);
 
                 // finds what kind of collision it was
                 let current_collision = match min_index {
@@ -414,7 +414,7 @@ impl MovingObject {
         // in itself, but it almost certainly means that something
         // somewhere else has gone completely wrong
         if amount < 0.0 {
-            panic!("attempted to move moving platform negative ammount");
+            panic!("attempted to move moving platform negative amount");
         }
 
         self.amount_traveled += amount / self.move_time;
