@@ -42,7 +42,7 @@ pub struct Map {
     // the player
     pub player: RigidBody,
 
-    /// if the player goes below this point, they rewspawn
+    /// if the player goes below this point, they respawn
     pub lowest_point: f64,
 }
 
@@ -72,16 +72,8 @@ impl Map {
         match level {
             1 => {
                 self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(180.0, -520.0),
-                        width: 440.0,
-                        height: 1000.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(650.0, -520.0),
-                        width: 300.0,
-                        height: 1100.0,
-                    },
+                    StaticObject::new(Vector2::new(180.0, -520.0), 440.0, 1000.0),
+                    StaticObject::new(Vector2::new(650.0, -520.0), 300.0, 1100.0),
                 ];
 
                 self.player_respawn = RigidBody {
@@ -99,16 +91,8 @@ impl Map {
 
             2 => {
                 self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(180.0, -520.0),
-                        width: 440.0,
-                        height: 1000.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(1125.0, -500.0),
-                        width: 440.0,
-                        height: 1000.0,
-                    },
+                    StaticObject::new(Vector2::new(180.0, -520.0), 440.0, 1000.0),
+                    StaticObject::new(Vector2::new(1125.0, -500.0), 440.0, 1000.0),
                 ];
 
                 self.moving_objects = vec![MovingObject::new(
@@ -134,26 +118,10 @@ impl Map {
 
             3 => {
                 self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(200.0, -500.0),
-                        width: 400.0,
-                        height: 1000.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(325.0, 340.0),
-                        width: 150.0,
-                        height: 100.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(50.0, 370.0),
-                        width: 150.0,
-                        height: 100.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(-225.0, 400.0),
-                        width: 150.0,
-                        height: 100.0,
-                    },
+                    StaticObject::new(Vector2::new(200.0, -500.0), 400.0, 1000.0),
+                    StaticObject::new(Vector2::new(325.0, 340.0), 150.0, 100.0),
+                    StaticObject::new(Vector2::new(50.0, 370.0), 150.0, 100.0),
+                    StaticObject::new(Vector2::new(-225.0, 400.0), 150.0, 100.0),
                 ];
 
                 self.moving_objects = vec![MovingObject::new(
@@ -179,26 +147,10 @@ impl Map {
 
             4 => {
                 self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(100.0, -500.0),
-                        width: 400.0,
-                        height: 1000.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(480.0, 10.0),
-                        width: 100.0,
-                        height: 100.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(100.0, 250.0),
-                        width: 200.0,
-                        height: 90.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(-150.0, 300.0),
-                        width: 110.0,
-                        height: 110.0,
-                    },
+                    StaticObject::new(Vector2::new(100.0, -500.0), 400.0, 1000.0),
+                    StaticObject::new(Vector2::new(480.0, 10.0), 100.0, 100.0),
+                    StaticObject::new(Vector2::new(100.0, 250.0), 200.0, 90.0),
+                    StaticObject::new(Vector2::new(-150.0, 300.0), 110.0, 110.0),
                 ];
 
                 self.moving_objects = vec![
@@ -233,31 +185,42 @@ impl Map {
 
             5 => {
                 self.static_objects = vec![
-                    StaticObject {
-                        center: Vector2::new(100.0, -520.0),
-                        width: 400.0,
-                        height: 1000.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(80.0, 310.0),
-                        width: 120.0,
-                        height: 100.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(-200.0, 270.0),
-                        width: 120.0,
-                        height: 100.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(0.0, 590.0),
-                        width: 100.0,
-                        height: 70.0,
-                    },
-                    StaticObject {
-                        center: Vector2::new(270.0, 610.0),
-                        width: 120.0,
-                        height: 100.0,
-                    },
+                    StaticObject::new(Vector2::new(0.0, -800.0), 600.0, 1600.0),
+                    StaticObject::new(Vector2::new(500.0, 300.0), 60.0, 600.0),
+                    StaticObject::new(Vector2::new(700.0, 300.0), 60.0, 600.0),
+                    StaticObject::new(Vector2::new(900.0, 300.0), 60.0, 600.0),
+                    StaticObject::new(Vector2::new(1100.0, 35.0), 70.0, 70.0),
+                    StaticObject::new(Vector2::new(1300.0, 60.0), 100.0, 80.0),
+                ];
+
+                self.moving_objects = vec![MovingObject::new(
+                    Vector2::new(900.0, -100.0),
+                    Vector2::new(900.0, -12.5),
+                    1000.0,
+                    25.0,
+                    100.0,
+                )];
+
+                self.player_respawn = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
+
+                self.goal = Circle::new(&Vector2::new(1480.0, 200.0), 20.0, GOAL_COLOR);
+
+                self.lowest_point = -500.0;
+            }
+
+            6 => {
+                self.static_objects = vec![
+                    StaticObject::new(Vector2::new(100.0, -520.0), 400.0, 1000.0),
+                    StaticObject::new(Vector2::new(80.0, 310.0), 120.0, 100.0),
+                    StaticObject::new(Vector2::new(-200.0, 270.0), 120.0, 100.0),
+                    StaticObject::new(Vector2::new(0.0, 590.0), 100.0, 70.0),
+                    StaticObject::new(Vector2::new(270.0, 610.0), 120.0, 100.0),
                 ];
 
                 self.moving_objects = vec![
@@ -302,15 +265,15 @@ impl Map {
         self.player = self.player_respawn;
 
         // put a moving platform end indicator
-        // at the end of allmoving objects
+        // at the end of all moving objects
         self.moving_objects.iter().for_each(|object| {
             self.moving_object_indicators.push(Circle::new(
-                &object.start_pos,
+                &object.start_pos(),
                 MOVING_PLATFORM_INDICATOR_RADIUS,
                 MOVING_PLATFORM_INDICATOR_COLOR,
             ));
             self.moving_object_indicators.push(Circle::new(
-                &object.end_pos,
+                &object.end_pos(),
                 MOVING_PLATFORM_INDICATOR_RADIUS,
                 MOVING_PLATFORM_INDICATOR_COLOR,
             ));

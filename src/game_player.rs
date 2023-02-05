@@ -91,7 +91,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
     // create our camera
     let mut camera = Camera::new(map.player.center.x - WINDOW_WIDTH as f64 / 2.0, 0.0);
 
-    // how long each frame takes (in hundreths of a seconds)
+    // how long each frame takes (in hundreds of a seconds)
     let mut frame_time: f64 = 0.0;
 
     // jump buffers make movement feel a little better
@@ -184,7 +184,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             // only keep the player stuck if they're still on the platform
             if map.player.collides_with_x(&stuck_obj) {
                 stuck_obj.update(frame_time);
-                map.player.center.x += stuck_obj.prev_move.x;
+                map.player.center.x += stuck_obj.prev_move().x;
                 // move the player slightly into the platform to keep them stuck
                 map.player.center.y = stuck_obj.bounds().top + map.player.height / 2.0 - 0.01;
             }
@@ -221,7 +221,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
 
         // reset the player's velocity if they're
         // on the side of an object
-        if collision.contains(&CollisionTypes::Side) {
+        if collision.contains(&CollisionTypes::Left) || collision.contains(&CollisionTypes::Right) {
             map.player.velocity.x = 0.0;
         }
 
@@ -241,7 +241,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             let mut additional_velocity = Vector2::new(0.0, 0.0);
             if let Some(obj) = stuck_platform {
                 additional_velocity =
-                    Vector2::multiply(&obj.prev_move, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER);
+                    Vector2::multiply(&obj.prev_move(), STUCK_PLATFORM_VELOCITY_ADD_MODIFIER);
             }
 
             // set the correct vertical velocity
@@ -269,8 +269,13 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
             }
         }
 
-        // reapawn if the player is too low
-        if map.player.center.y < map.lowest_point {
+        // reapawn if the player is too low or is being squished
+        if map.player.center.y < map.lowest_point
+            || (collision.contains(&CollisionTypes::Top)
+                && collision.contains(&CollisionTypes::Bottom))
+            || (collision.contains(&CollisionTypes::Left)
+                && collision.contains(&CollisionTypes::Right))
+        {
             map.player = map.player_respawn;
         }
 

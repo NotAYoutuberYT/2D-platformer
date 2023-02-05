@@ -83,14 +83,59 @@ impl Bounds {
 /// Two of its sides must be vertical,
 /// and the other two must be horizontal.
 pub trait RectObject {
+    /// returns the center of the object
+    fn center(&self) -> Vector2;
+
+    /// returns the width of the object
+    fn width(&self) -> f64;
+
+    /// returns the height of the object
+    fn height(&self) -> f64;
+
     /// returns the object's 4 points in clockwise
     /// order, starting at the top left
-    fn points(&self) -> Vec<Vector2>;
+    fn points(&self) -> Vec<Vector2> {
+        let mut points: Vec<Vector2> = vec![];
+
+        let half_width: f64 = self.width() / 2.0;
+        let half_height: f64 = self.height() / 2.0;
+
+        // add points to vector
+        points.push(Vector2::new(
+            self.center().x - half_width,
+            self.center().y + half_height,
+        ));
+        points.push(Vector2::new(
+            self.center().x + half_width,
+            self.center().y + half_height,
+        ));
+        points.push(Vector2::new(
+            self.center().x + half_width,
+            self.center().y - half_height,
+        ));
+        points.push(Vector2::new(
+            self.center().x - half_width,
+            self.center().y - half_height,
+        ));
+
+        points
+    }
 
     /// returns a vector containing the leftmost
     /// x value, rightmost x value, lowest y
     /// value, and uppermost y value respectively
-    fn bounds(&self) -> Bounds;
+    fn bounds(&self) -> Bounds {
+        let half_width: f64 = self.width() / 2.0;
+        let half_height: f64 = self.height() / 2.0;
+
+        Bounds {
+            left: self.center().x - half_width,
+            right: self.center().x + half_width,
+
+            bottom: self.center().y - half_height,
+            top: self.center().y + half_height,
+        }
+    }
 
     /// determines if a Vector2 lies within the object
     /// (being on an edge doesn't count as being inside)
@@ -155,8 +200,9 @@ pub trait RectObject {
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum CollisionTypes {
     Bottom,
-    Side,
     Top,
+    Left,
+    Right,
 }
 
 /// struct to represent an object with physics
@@ -188,7 +234,7 @@ impl RigidBody {
     }
 
     /**
-    handles the collisions with an array of rectobjects,
+    handles the collisions with an array of rect objects,
     puts the collision type into active_collision,
     and returns the index of the object the player was
     on, if any
@@ -235,7 +281,7 @@ impl RigidBody {
                     .unwrap()
                     .0;
 
-                // move the player ouside of the platform
+                // move the player outside of the platform
                 let mut guard = self_ptr.lock().unwrap();
                 match min_index {
                     0 => guard.center.x = obj_bounds.left - (guard.width / 2.0),
@@ -243,15 +289,15 @@ impl RigidBody {
                     2 => guard.center.y = obj_bounds.bottom - (guard.height / 2.0) - 1.0, // -1.0 stops physics bugs
                     3 => guard.center.y = obj_bounds.top + (guard.height / 2.0),
 
-                    _ => panic!("Error: closest to no sien handling rigidbody collisions"),
+                    _ => panic!("Error: closest to no side handling rigidbody collisions"),
                 }
 
                 std::mem::drop(guard);
 
                 // finds what kind of collision it was
                 let current_collision = match min_index {
-                    0 => CollisionTypes::Side,
-                    1 => CollisionTypes::Side,
+                    0 => CollisionTypes::Left,
+                    1 => CollisionTypes::Right,
                     2 => CollisionTypes::Bottom,
                     3 => CollisionTypes::Top,
                     _ => panic!("Error: closest to no side when handling rigidbody collisions"),
@@ -280,44 +326,16 @@ impl RigidBody {
 }
 
 impl RectObject for RigidBody {
-    fn points(&self) -> Vec<Vector2> {
-        let mut points: Vec<Vector2> = vec![];
-
-        let half_width: f64 = self.width / 2.0;
-        let half_height: f64 = self.height / 2.0;
-
-        // add points to vector
-        points.push(Vector2::new(
-            self.center.x - half_width,
-            self.center.y + half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x + half_width,
-            self.center.y + half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x + half_width,
-            self.center.y - half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x - half_width,
-            self.center.y - half_height,
-        ));
-
-        points
+    fn center(&self) -> Vector2 {
+        self.center
     }
 
-    fn bounds(&self) -> Bounds {
-        let half_width: f64 = self.width / 2.0;
-        let half_height: f64 = self.height / 2.0;
+    fn width(&self) -> f64 {
+        self.width
+    }
 
-        Bounds {
-            left: self.center.x - half_width,
-            right: self.center.x + half_width,
-
-            bottom: self.center.y - half_height,
-            top: self.center.y + half_height,
-        }
+    fn height(&self) -> f64 {
+        self.height
     }
 }
 
@@ -328,21 +346,37 @@ impl RectObject for RigidBody {
 #[derive(Clone)]
 /// a RectObject that moves between two fixed points
 pub struct MovingObject {
-    pub start_pos: Vector2,
-    pub end_pos: Vector2,
-    pub width: f64,
-    pub height: f64,
-    pub move_time: f64,
+    start_pos: Vector2,
+    end_pos: Vector2,
+
+    width: f64,
+    height: f64,
+    move_time: f64,
 
     /// describes how far the object has traveled (0-1 is going to end_pos, 1-2 is returning to start_pos)
     amount_traveled: f64,
-    pub center: Vector2,
+    center: Vector2,
 
     /// the motion on the object's last update
-    pub prev_move: Vector2,
+    prev_move: Vector2,
 }
 
 impl MovingObject {
+    /// returns the object's start position
+    pub fn start_pos(&self) -> Vector2 {
+        self.start_pos
+    }
+
+    /// returns the object's end position
+    pub fn end_pos(&self) -> Vector2 {
+        self.end_pos
+    }
+
+    /// returns the object's previous move
+    pub fn prev_move(&self) -> Vector2 {
+        self.prev_move
+    }
+
     /// creates a new leaving moving platform at start point
     pub fn new(
         start_pos: Vector2,
@@ -370,78 +404,50 @@ impl MovingObject {
     /**
      * moves the object across its path and stores the new position
      * will automatically change direction
-     * will panic on negative ammount values
+     * will panic on negative amount values
      * returns the movement the object took
      */
-    pub fn update(&mut self, ammount: f64) {
+    pub fn update(&mut self, amount: f64) {
         let pre_center: Vector2 = Vector2::clone(&self.center);
 
         // trying to move a moving platform backwards isn't unrecoverable
         // in itself, but it almost certainly means that something
         // somewhere else has gone completely wrong
-        if ammount < 0.0 {
+        if amount < 0.0 {
             panic!("attempted to move moving platform negative ammount");
         }
 
-        self.amount_traveled += ammount / self.move_time;
+        self.amount_traveled += amount / self.move_time;
 
         // this prevents overflow
         self.amount_traveled %= 2.0;
 
-        // configures the lerp ammount
-        let lerp_ammount: f64 = match self.amount_traveled < 1.0 {
+        // configures the lerp amount
+        let lerp_amount: f64 = match self.amount_traveled < 1.0 {
             true => self.amount_traveled,
             false => 2.0 - self.amount_traveled,
         };
 
         // lerp between the two points to determine the center of the moving platform
         self.center
-            .set(&Vector2::lerp(&self.start_pos, &self.end_pos, lerp_ammount));
+            .set(&Vector2::lerp(&self.start_pos, &self.end_pos, lerp_amount));
 
-        // return the moved ammount by subtracting previous position from new position
+        // return the moved amount by subtracting previous position from new position
         self.prev_move = Vector2::add(&Vector2::multiply(&pre_center, -1.0), &self.center)
     }
 }
 
 impl RectObject for MovingObject {
-    fn points(&self) -> Vec<Vector2> {
-        let mut points: Vec<Vector2> = vec![];
-
-        let half_width: f64 = self.width / 2.0;
-        let half_height: f64 = self.height / 2.0;
-
-        // add points to vector
-        points.push(Vector2::new(
-            self.center.x - half_width,
-            self.center.y + half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x + half_width,
-            self.center.y + half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x + half_width,
-            self.center.y - half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x - half_width,
-            self.center.y - half_height,
-        ));
-
-        points
+    fn center(&self) -> Vector2 {
+        self.center
     }
 
-    fn bounds(&self) -> Bounds {
-        let half_width: f64 = self.width / 2.0;
-        let half_height: f64 = self.height / 2.0;
+    fn width(&self) -> f64 {
+        self.width
+    }
 
-        Bounds {
-            left: self.center.x - half_width,
-            right: self.center.x + half_width,
-
-            bottom: self.center.y - half_height,
-            top: self.center.y + half_height,
-        }
+    fn height(&self) -> f64 {
+        self.height
     }
 }
 
@@ -450,51 +456,34 @@ impl RectObject for MovingObject {
 //
 
 #[derive(Clone)]
+/// a pure implementation of rect object
 pub struct StaticObject {
-    pub center: Vector2,
-    pub width: f64,
-    pub height: f64,
+    center: Vector2,
+    width: f64,
+    height: f64,
+}
+
+impl StaticObject {
+    pub fn new(center: Vector2, width: f64, height: f64) -> StaticObject {
+        StaticObject {
+            center,
+            width,
+            height,
+        }
+    }
 }
 
 impl RectObject for StaticObject {
-    fn points(&self) -> Vec<Vector2> {
-        let mut points: Vec<Vector2> = vec![];
-
-        let half_width: f64 = self.width / 2.0;
-        let half_height: f64 = self.height / 2.0;
-
-        // add points to vector
-        points.push(Vector2::new(
-            self.center.x - half_width,
-            self.center.y + half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x + half_width,
-            self.center.y + half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x + half_width,
-            self.center.y - half_height,
-        ));
-        points.push(Vector2::new(
-            self.center.x - half_width,
-            self.center.y - half_height,
-        ));
-
-        points
+    fn center(&self) -> Vector2 {
+        self.center
     }
 
-    fn bounds(&self) -> Bounds {
-        let half_width: f64 = self.width / 2.0;
-        let half_height: f64 = self.height / 2.0;
+    fn width(&self) -> f64 {
+        self.width
+    }
 
-        Bounds {
-            left: self.center.x - half_width,
-            right: self.center.x + half_width,
-
-            bottom: self.center.y - half_height,
-            top: self.center.y + half_height,
-        }
+    fn height(&self) -> f64 {
+        self.height
     }
 }
 
@@ -502,7 +491,7 @@ impl RectObject for StaticObject {
 // Circle code
 //
 
-// a circle with no collisions used to indicate sutffz
+/// a circle with no collisions used to indicate different things
 pub struct Circle {
     center: Vector2,
     radius: f64,
