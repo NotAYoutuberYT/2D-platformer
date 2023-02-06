@@ -48,7 +48,7 @@ fn main() {
     window.limit_update_rate(Some(std::time::Duration::from_millis(FRAME_LIMIT_MILLIS)));
     window.set_position(20, 20);
 
-    while !play_game(&mut map, &mut window) {
+    while !play_game(&mut map, &mut window) && current_level != 7 {
         current_level += 1;
         map.load_map(current_level);
     }

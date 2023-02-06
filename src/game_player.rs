@@ -1,10 +1,8 @@
-use crate::constants::CHECKPOINT_COLOR;
-
 use super::{
     camera::{Camera, Rgb},
     constants::{
-        BACKGROUND_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN, GRAVITY_MOVING_UP,
-        JUMP_BUFFER_HUNDREDTH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
+        BACKGROUND_COLOR, CHECKPOINT_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN,
+        GRAVITY_MOVING_UP, JUMP_BUFFER_HUNDREDTH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
         MOVING_PLATFORM_INDICATOR_COLOR, NORMAL_PLAYER_COLOR, PLAYER_AIR_ACCELERATION_RATIO,
         PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER,
         VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, VOID_COLOR, VOID_TRANSITION_SIZE, WINDOW_HEIGHT,
@@ -71,9 +69,9 @@ fn render_game(world_point: Vector2, map: &Map) -> Rgb {
     } else if world_point.y < map.lowest_point - VOID_TRANSITION_SIZE / 2.0 {
         rgb = VOID_COLOR;
     } else {
-        let distance_in =
-            (map.lowest_point + VOID_TRANSITION_SIZE / 2.0 - world_point.y) / VOID_TRANSITION_SIZE;
-        rgb = BACKGROUND_COLOR.blend(distance_in, VOID_COLOR);
+        let distance_in = map.lowest_point + VOID_TRANSITION_SIZE / 2.0 - world_point.y;
+        let blend_amount = distance_in / VOID_TRANSITION_SIZE;
+        rgb = BACKGROUND_COLOR.blend(blend_amount, VOID_COLOR);
     }
 
     rgb

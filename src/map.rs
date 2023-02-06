@@ -258,6 +258,78 @@ impl Map {
                 self.lowest_point = -250.0;
             }
 
+            7 => {
+                self.static_objects = vec![
+                    StaticObject::new(Vector2::new(150.0, -520.0), 450.0, 1000.0),
+                    StaticObject::new(Vector2::new(540.0, -10.0), 100.0, 80.0),
+                    StaticObject::new(Vector2::new(1150.0, 50.0), 140.0, 100.0),
+                    StaticObject::new(Vector2::new(1400.0, 80.0), 100.0, 80.0),
+                    StaticObject::new(Vector2::new(1950.0, 330.0), 120.0, 80.0),
+                    StaticObject::new(Vector2::new(2250.0, 200.0), 100.0, 75.0),
+                    StaticObject::new(Vector2::new(2950.0, 350.0), 150.0, 80.0),
+                    StaticObject::new(Vector2::new(3250.0, 380.0), 150.0, 80.0),
+                    StaticObject::new(Vector2::new(3850.0, 450.0), 150.0, 80.0),
+                    StaticObject::new(Vector2::new(4120.0, 480.0), 120.0, 80.0),
+                    StaticObject::new(Vector2::new(4420.0, 500.0), 70.0, 50.0),
+                    StaticObject::new(Vector2::new(4700.0, 470.0), 70.0, 50.0),
+                    StaticObject::new(Vector2::new(4970.0, 470.0), 70.0, 50.0),
+                ];
+
+                self.moving_objects = vec![
+                    MovingObject::new(
+                        Vector2::new(730.0, 40.0),
+                        Vector2::new(800.0, 300.0),
+                        100.0,
+                        30.0,
+                        125.0,
+                    ),
+                    MovingObject::new(
+                        Vector2::new(1600.0, 130.0),
+                        Vector2::new(1650.0, 330.0),
+                        80.0,
+                        22.0,
+                        100.0,
+                    ),
+                    MovingObject::new(
+                        Vector2::new(2420.0, 230.0),
+                        Vector2::new(2620.0, 430.0),
+                        100.0,
+                        25.0,
+                        100.0,
+                    ),
+                    MovingObject::new(
+                        Vector2::new(3500.0, 400.0),
+                        Vector2::new(3550.0, 550.0),
+                        110.0,
+                        30.0,
+                        80.0,
+                    ),
+                ];
+
+                self.player_respawn = RigidBody {
+                    center: Vector2::new(0.0, 0.0),
+                    width: PLAYER_WIDTH,
+                    height: PLAYER_HEIGHT,
+
+                    velocity: Vector2::new(0.0, 0.0),
+                };
+
+                self.checkpoints = vec![
+                    Checkpoint::new(
+                        Circle::new(&Vector2::new(1950.0, 410.0), 15.0, CHECKPOINT_COLOR),
+                        Vector2::new(1950.0, 370.0 + PLAYER_HEIGHT / 2.0),
+                    ),
+                    Checkpoint::new(
+                        Circle::new(&Vector2::new(4120.0, 560.0), 15.0, CHECKPOINT_COLOR),
+                        Vector2::new(4120.0, 520.0 + PLAYER_HEIGHT / 2.0),
+                    ),
+                ];
+
+                self.goal = Circle::new(&Vector2::new(5195.0, 630.0), 20.0, GOAL_COLOR);
+
+                self.lowest_point = -150.0;
+            }
+
             _ => panic!("Map.load_map given improper level number"),
         }
 
