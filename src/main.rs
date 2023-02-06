@@ -1,9 +1,9 @@
 /* This project uses a library (known as a crate in Rust) called minifb. It is
 owned by Daniel Collin. It can be found on crates.io at https://crates.io/crates/minifb
 or on GitHub at https://github.com/emoon/rust_minifb. To use in a project, put the line
-of code "minifb = "0.23" into the cargo.toml file of a cargo-initilized project. This
+of code "minifb = "0.23" into the cargo.toml file of a cargo-initialized project. This
 crate is what allows me to open a window and write rgb values to each pixel of the window. All
-code for representing objects, rendring those objects, and performing physics is written by Bryce Holland. */
+code for representing objects, rendering those objects, and performing physics is written by Bryce Holland. */
 extern crate minifb;
 use minifb::{Window, WindowOptions};
 
@@ -16,8 +16,8 @@ mod objects;
 mod camera;
 use constants::{FRAME_LIMIT_MILLIS, WINDOW_HEIGHT, WINDOW_WIDTH};
 
-mod map_loader;
-use map_loader::Map;
+mod map;
+use map::Map;
 
 mod constants;
 
@@ -48,7 +48,7 @@ fn main() {
     window.limit_update_rate(Some(std::time::Duration::from_millis(FRAME_LIMIT_MILLIS)));
     window.set_position(20, 20);
 
-    while !play_game(&mut map, &mut window) {
+    while !play_game(&mut map, &mut window) && current_level != 7 {
         current_level += 1;
         map.load_map(current_level);
     }

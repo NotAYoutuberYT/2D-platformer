@@ -2,11 +2,24 @@
 // config constants
 //
 
+use crate::camera::Rgb;
+
 // colors :)
-pub const NORMAL_PLAYER_COLOR: u32 = 0xf00000;
-pub const MOVING_OBJECT_COLOR: u32 = 0xff00;
-pub const STATIC_OBJECT_COLOR: u32 = 0xff;
-pub const BACKGROUND_COLOR: u32 = 0x200020;
+pub const NORMAL_PLAYER_COLOR: Rgb = Rgb::from_u32(0xf00000);
+pub const MOVING_OBJECT_COLOR: Rgb = Rgb::from_u32(0x6cc06);
+pub const STATIC_OBJECT_COLOR: Rgb = Rgb::from_u32(0xff);
+pub const MOVING_PLATFORM_INDICATOR_COLOR: Rgb = Rgb::from_u32(0xeeeeee);
+pub const CHECKPOINT_COLOR: Rgb = Rgb::from_u32(0xff00);
+pub const GOAL_COLOR: Rgb = Rgb::from_u32(0xf6f70b);
+pub const BACKGROUND_COLOR: Rgb = Rgb::from_u32(0x200020);
+pub const VOID_COLOR: Rgb = Rgb::from_u32(0x100010);
+
+// sizes
+pub const MOVING_PLATFORM_INDICATOR_RADIUS: f64 = 5.0;
+pub const VOID_TRANSITION_SIZE: f64 = 60.0;
+
+pub const PLAYER_WIDTH: f64 = 20.0;
+pub const PLAYER_HEIGHT: f64 = 40.0;
 
 // window stuff
 pub const WINDOW_WIDTH: usize = 260 * 4;
@@ -15,12 +28,12 @@ pub const FPS: f64 = 144.0;
 
 // player stuff
 pub const PLAYER_WALKING_ACCEL: f64 = 2.4;
-pub const PLAYER_AIR_ACCELL_RATIO: f64 = 0.05;
-pub const STUCK_PLATFORM_VELOCITY_ADD_MODIFIER: f64 = 0.8;
+pub const PLAYER_AIR_ACCELERATION_RATIO: f64 = 0.05;
+pub const STUCK_PLATFORM_VELOCITY_ADD_MODIFIER: f64 = 0.6;
 
 // jump stuff
 pub const JUMP_FORCE: f64 = 5.0;
-pub const JUMP_BUFFER_HUNDRETH_SECONDS: f64 = 0.0006;
+pub const JUMP_BUFFER_HUNDREDTH_SECONDS: f64 = 0.0006;
 
 // physics stuff
 pub const FRICTION_GROUND: f64 = 0.7;
