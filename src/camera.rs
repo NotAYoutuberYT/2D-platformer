@@ -22,7 +22,7 @@ impl Rgb {
         (lerp_amount * v2 as f64 + (1.0 - lerp_amount) * v1 as f64) as u8
     }
 
-    pub fn new(red: u8, blue: u8, green: u8) -> Rgb {
+    pub const fn new(red: u8, blue: u8, green: u8) -> Rgb {
         Rgb { red, green, blue }
     }
 

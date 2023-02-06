@@ -183,7 +183,6 @@ pub trait RectObject {
     }
 
     /// detects collision with the other object
-    // /(colliding edges counts as collision)
     fn collides_with(&self, other: &dyn RectObject) -> bool {
         self.collides_with_x(other) && self.collides_with_y(other)
     }
@@ -410,16 +409,10 @@ impl MovingObject {
     pub fn update(&mut self, amount: f64) {
         let pre_center: Vector2 = Vector2::clone(&self.center);
 
-        // trying to move a moving platform backwards isn't unrecoverable
-        // in itself, but it almost certainly means that something
-        // somewhere else has gone completely wrong
-        if amount < 0.0 {
-            panic!("attempted to move moving platform negative amount");
-        }
-
+        // update the amount of path traveled
         self.amount_traveled += amount / self.move_time;
 
-        // this prevents overflow
+        // this prevents overflow of the amount traveled
         self.amount_traveled %= 2.0;
 
         // configures the lerp amount
@@ -521,17 +514,13 @@ impl Circle {
             (self.center.y - rigidbody.center.y).abs(),
         );
 
-        if distance.x > rigidbody.width / 2.0 + self.radius {
-            return false;
-        }
-        if distance.y > rigidbody.height / 2.0 + self.radius {
+        if distance.x > rigidbody.width / 2.0 + self.radius
+            || distance.y > rigidbody.height / 2.0 + self.radius
+        {
             return false;
         }
 
-        if distance.x <= rigidbody.width / 2.0 {
-            return true;
-        }
-        if distance.y <= rigidbody.height / 2.0 {
+        if distance.x <= rigidbody.width / 2.0 || distance.y <= rigidbody.height / 2.0 {
             return true;
         }
 

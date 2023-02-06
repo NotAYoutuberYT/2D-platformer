@@ -3,7 +3,7 @@ use super::{
     constants::{
         BACKGROUND_COLOR, CHECKPOINT_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN,
         GRAVITY_MOVING_UP, JUMP_BUFFER_HUNDREDTH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
-        MOVING_PLATFORM_INDICATOR_COLOR, NORMAL_PLAYER_COLOR, PLAYER_AIR_ACCELERATION_RATIO,
+        MOVING_PLATFORM_INDICATOR_COLOR, PLAYER_COLOR, PLAYER_AIR_ACCELERATION_RATIO,
         PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER,
         VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, VOID_COLOR, VOID_TRANSITION_SIZE, WINDOW_HEIGHT,
         WINDOW_WIDTH,
@@ -13,6 +13,7 @@ use super::{
 };
 
 use minifb::{Key, KeyRepeat, Window};
+use crate::constants::COYOTE_TIME_HUNDREDTH_SECONDS;
 
 // this is the function we use to render the game
 fn render_game(world_point: Vector2, map: &Map) -> Rgb {
@@ -57,7 +58,7 @@ fn render_game(world_point: Vector2, map: &Map) -> Rgb {
 
     // find the proper rgb value
     if player_collision {
-        rgb = NORMAL_PLAYER_COLOR;
+        rgb = PLAYER_COLOR;
     } else if moving_object_collision {
         rgb = MOVING_OBJECT_COLOR;
     } else if static_object_collision {
@@ -92,8 +93,13 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
     // how long each frame takes (in hundreds of a seconds)
     let mut frame_time: f64 = 0.0;
 
-    // jump buffers make movement feel a little better
+    // jump buffers make movement feel a little better by jumping even if the
+    // player clicks the jump button just before they land on the ground
     let mut jump_buffer: f64 = 0.0;
+
+    // coyote time makes movement feel a little better by jumping
+    // even if the player jumps just after leaving the ground
+    let mut coyote_time: f64 = 0.0;
 
     // this is where we'll store the player's active collision
     let mut collision: Vec<CollisionTypes> = Vec::new();
@@ -217,6 +223,13 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         // decrease our jump buffer
         jump_buffer -= frame_time;
 
+        // handle coyote time
+        if collision.contains(&CollisionTypes::Top) {
+            coyote_time = COYOTE_TIME_HUNDREDTH_SECONDS;
+        } else if coyote_time > 0.0 {
+            coyote_time -= frame_time;
+        }
+
         // reset the player's velocity if they're
         // on the side of an object
         if collision.contains(&CollisionTypes::Left) || collision.contains(&CollisionTypes::Right) {
@@ -233,7 +246,10 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         }
 
         // handle jumping
-        if collision.contains(&CollisionTypes::Top) && jump_buffer > 0.0 {
+        if coyote_time > 0.0 && jump_buffer > 0.0 {
+            // reset coyote time
+            coyote_time = 0.0;
+
             // if the player is stuck to a platform, add that object's
             // velocity multiplied by a constant to the player's velocity
             let mut additional_velocity = Vector2::new(0.0, 0.0);
