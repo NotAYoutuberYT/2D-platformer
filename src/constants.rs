@@ -5,9 +5,9 @@
 use crate::camera::Rgb;
 
 // colors :)
-pub const NORMAL_PLAYER_COLOR: Rgb = Rgb::from_u32(0xf00000);
-pub const MOVING_OBJECT_COLOR: Rgb = Rgb::from_u32(0x6cc06);
+pub const PLAYER_COLOR: Rgb = Rgb::from_u32(0xf00000);
 pub const STATIC_OBJECT_COLOR: Rgb = Rgb::from_u32(0xff);
+pub const MOVING_OBJECT_COLOR: Rgb = Rgb::from_u32(0x6cc06);
 pub const MOVING_PLATFORM_INDICATOR_COLOR: Rgb = Rgb::from_u32(0xeeeeee);
 pub const CHECKPOINT_COLOR: Rgb = Rgb::from_u32(0xff00);
 pub const GOAL_COLOR: Rgb = Rgb::from_u32(0xf6f70b);
@@ -29,11 +29,12 @@ pub const FPS: f64 = 144.0;
 // player stuff
 pub const PLAYER_WALKING_ACCEL: f64 = 2.4;
 pub const PLAYER_AIR_ACCELERATION_RATIO: f64 = 0.05;
+pub const COYOTE_TIME_HUNDREDTH_SECONDS: f64 = 8.0;
 pub const STUCK_PLATFORM_VELOCITY_ADD_MODIFIER: f64 = 0.6;
 
 // jump stuff
 pub const JUMP_FORCE: f64 = 5.0;
-pub const JUMP_BUFFER_HUNDREDTH_SECONDS: f64 = 0.0006;
+pub const JUMP_BUFFER_HUNDREDTH_SECONDS: f64 = 1.0;
 
 // physics stuff
 pub const FRICTION_GROUND: f64 = 0.7;

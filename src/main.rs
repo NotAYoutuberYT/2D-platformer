@@ -2,8 +2,9 @@
 owned by Daniel Collin. It can be found on crates.io at https://crates.io/crates/minifb
 or on GitHub at https://github.com/emoon/rust_minifb. To use in a project, put the line
 of code "minifb = "0.23" into the cargo.toml file of a cargo-initialized project. This
-crate is what allows me to open a window and write rgb values to each pixel of the window. All
-code for representing objects, rendering those objects, and performing physics is written by Bryce Holland. */
+crate is what allows me to open a window and write rgb values to each pixel of the window.
+The exact things I use from the crate will either be in a use statement (see below) or
+be explicitly prefaced with the library name (e.g. minifb::Window) */
 extern crate minifb;
 use minifb::{Window, WindowOptions};
 
