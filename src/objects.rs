@@ -153,7 +153,7 @@ pub trait RectObject {
     /// Returns if it is possible to make
     /// a vertical line that passes through
     /// self and a passed in RectObject
-    fn collides_with_y(&self, other: &dyn RectObject) -> bool {
+    fn collides_with_y<T: RectObject>(&self, other: &T) -> bool {
         let self_bounds = self.bounds();
         let other_bounds = other.bounds();
 
@@ -169,7 +169,7 @@ pub trait RectObject {
     /// Returns if it is possible to make
     /// a horizontal line that passes through
     /// self and a passed in RectObject
-    fn collides_with_x(&self, other: &dyn RectObject) -> bool {
+    fn collides_with_x<T: RectObject>(&self, other: &T) -> bool {
         let self_bounds = self.bounds();
         let other_bounds = other.bounds();
 
@@ -183,7 +183,7 @@ pub trait RectObject {
     }
 
     /// detects collision with the other object
-    fn collides_with(&self, other: &dyn RectObject) -> bool {
+    fn collides_with<T: RectObject>(&self, other: &T) -> bool {
         self.collides_with_x(other) && self.collides_with_y(other)
     }
 }
@@ -249,7 +249,6 @@ impl RigidBody {
         let self_tracker = Arc::new(Mutex::new(*self));
 
         for (index, object) in objects.iter().enumerate() {
-            // if the rigidbody doesn't collide with this object at all, move to the next object
             if !self.collides_with(object) {
                 continue;
             }
@@ -508,6 +507,10 @@ impl Circle {
         distance_from_center_squared < self.radius * self.radius
     }
 
+    // the algorithm for this function was made by stack overflow user "e.James"
+    // the user who left the comment: https://stackoverflow.com/users/33686/e-james
+    // original post with comment:
+    // https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
     pub fn intersects_rigidbody(&self, rigidbody: &RigidBody) -> bool {
         let distance = Vector2::new(
             (self.center.x - rigidbody.center.x).abs(),

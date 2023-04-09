@@ -79,22 +79,12 @@ impl Camera {
                     * (player.center.x - self.bottom_left.x - MIN_X_FROM_CAMERA_BOTTOM_LEFT)
                     * frame_time
                     * CAMERA_MOVING_EASING_X;
-
-            // avoid over-correcting the camera
-            if player.center.x - self.bottom_left.x > MIN_X_FROM_CAMERA_BOTTOM_LEFT {
-                self.bottom_left.x = player.center.x - MIN_X_FROM_CAMERA_BOTTOM_LEFT;
-            }
         } else if player.center.x - self.bottom_left.x > MAX_X_FROM_CAMERA_BOTTOM_LEFT {
             self.bottom_left.x +=
                 (player.center.x - self.bottom_left.x - MAX_X_FROM_CAMERA_BOTTOM_LEFT)
                     * (player.center.x - self.bottom_left.x - MAX_X_FROM_CAMERA_BOTTOM_LEFT)
                     * frame_time
                     * CAMERA_MOVING_EASING_X;
-
-            // avoid over-correcting the camera
-            if player.center.x - self.bottom_left.x < MAX_X_FROM_CAMERA_BOTTOM_LEFT {
-                self.bottom_left.x = player.center.x - MAX_X_FROM_CAMERA_BOTTOM_LEFT;
-            }
         }
 
         if player.center.y - self.bottom_left.y < MIN_Y_FROM_CAMERA_BOTTOM_LEFT {
@@ -103,22 +93,12 @@ impl Camera {
                     * (player.center.y - self.bottom_left.y - MIN_Y_FROM_CAMERA_BOTTOM_LEFT)
                     * frame_time
                     * CAMERA_MOVING_EASING_Y;
-
-            // avoid over-correcting the camera
-            if player.center.y - self.bottom_left.y > MIN_Y_FROM_CAMERA_BOTTOM_LEFT {
-                self.bottom_left.y = player.center.y - MIN_Y_FROM_CAMERA_BOTTOM_LEFT;
-            }
         } else if player.center.y - self.bottom_left.y > MAX_Y_FROM_CAMERA_BOTTOM_LEFT {
             self.bottom_left.y +=
                 (player.center.y - self.bottom_left.y - MAX_Y_FROM_CAMERA_BOTTOM_LEFT)
                     * (player.center.y - self.bottom_left.y - MAX_Y_FROM_CAMERA_BOTTOM_LEFT)
                     * frame_time
                     * CAMERA_MOVING_EASING_Y;
-
-            // avoid over-correcting the camera
-            if player.center.y - self.bottom_left.y < MAX_Y_FROM_CAMERA_BOTTOM_LEFT {
-                self.bottom_left.y = player.center.y - MAX_Y_FROM_CAMERA_BOTTOM_LEFT;
-            }
         }
     }
 

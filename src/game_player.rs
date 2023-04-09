@@ -3,7 +3,7 @@ use super::{
     constants::{
         BACKGROUND_COLOR, CHECKPOINT_COLOR, FRICTION_AIR, FRICTION_GROUND, GRAVITY_MOVING_DOWN,
         GRAVITY_MOVING_UP, JUMP_BUFFER_HUNDREDTH_SECONDS, JUMP_FORCE, MOVING_OBJECT_COLOR,
-        MOVING_PLATFORM_INDICATOR_COLOR, PLAYER_COLOR, PLAYER_AIR_ACCELERATION_RATIO,
+        MOVING_PLATFORM_INDICATOR_COLOR, PLAYER_AIR_ACCELERATION_RATIO, PLAYER_COLOR,
         PLAYER_WALKING_ACCEL, STATIC_OBJECT_COLOR, STUCK_PLATFORM_VELOCITY_ADD_MODIFIER,
         VERTICAL_VELOCITY_ON_OR_UNDER_OBJECT, VOID_COLOR, VOID_TRANSITION_SIZE, WINDOW_HEIGHT,
         WINDOW_WIDTH,
@@ -12,8 +12,8 @@ use super::{
     objects::{CollisionTypes, MovingObject, RectObject, Vector2},
 };
 
-use minifb::{Key, KeyRepeat, Window};
 use crate::constants::COYOTE_TIME_HUNDREDTH_SECONDS;
+use minifb::{Key, KeyRepeat, Window};
 
 // this is the function we use to render the game
 fn render_game(world_point: Vector2, map: &Map) -> Rgb {
@@ -186,7 +186,7 @@ pub fn play_game(map: &mut Map, window: &mut Window) -> bool {
         // move with the platform we're stuck to
         if let Some(mut stuck_obj) = stuck_platform {
             // only keep the player stuck if they're still on the platform
-            if map.player.collides_with_x(&stuck_obj) {
+            if map.player.collides_with_y(&stuck_obj) {
                 stuck_obj.update(frame_time);
                 map.player.center.x += stuck_obj.prev_move().x;
                 // move the player slightly into the platform to keep them stuck
